@@ -4,13 +4,14 @@ import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import GridThumb from '../components/GridThumb';
-import { catalog } from '../data/catalog';
+import { useVisibleFeed } from '../hooks/useVisibleFeed';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
 export default function DiscoverScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [query, setQuery] = useState('');
+  const catalog = useVisibleFeed();
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -21,7 +22,7 @@ export default function DiscoverScreen() {
         t.category.toLowerCase().includes(q) ||
         t.author.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, catalog]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

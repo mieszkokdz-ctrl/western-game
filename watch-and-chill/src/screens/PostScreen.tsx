@@ -15,6 +15,7 @@ export default function PostScreen() {
   const route = useRoute<Route>();
   const { addVideo } = useUserVideos();
   const [caption, setCaption] = useState('');
+  const [confirmedRights, setConfirmedRights] = useState(false);
 
   const player = useVideoPlayer(route.params.uri, p => {
     p.loop = true;
@@ -50,7 +51,28 @@ export default function PostScreen() {
             multiline
             maxLength={150}
           />
-          <TouchableOpacity style={styles.publishButton} onPress={handlePublish}>
+
+          <TouchableOpacity
+            style={styles.rightsRow}
+            onPress={() => setConfirmedRights(v => !v)}
+            activeOpacity={0.8}
+            testID="post-rights-checkbox"
+          >
+            <View style={[styles.checkbox, confirmedRights && styles.checkboxChecked]}>
+              {confirmedRights && <Text style={styles.checkboxMark}>✓</Text>}
+            </View>
+            <Text style={styles.rightsText}>
+              Potwierdzam, że mam prawa do tej treści i przestrzegam Regulaminu (zero tolerancji dla treści
+              niedozwolonych).
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.publishButton, !confirmedRights && styles.publishButtonDisabled]}
+            onPress={handlePublish}
+            disabled={!confirmedRights}
+            testID="post-publish-button"
+          >
             <Text style={styles.publishButtonText}>Opublikuj</Text>
           </TouchableOpacity>
         </SafeAreaView>
@@ -101,6 +123,38 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     maxHeight: 80,
   },
+  rightsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkboxMark: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rightsText: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 12.5,
+    lineHeight: 17,
+  },
   publishButton: {
     backgroundColor: colors.primary,
     marginHorizontal: 16,
@@ -109,6 +163,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  publishButtonDisabled: {
+    opacity: 0.4,
   },
   publishButtonText: {
     color: colors.text,

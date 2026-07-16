@@ -2,8 +2,7 @@ import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Dimensions, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import VerticalFeed from '../components/VerticalFeed';
-import { useUserVideos } from '../context/UserVideosContext';
-import { catalog } from '../data/catalog';
+import { useVisibleFeed } from '../hooks/useVisibleFeed';
 import { colors } from '../theme/colors';
 
 export default function HomeScreen() {
@@ -11,9 +10,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const windowHeight = Dimensions.get('window').height;
   const itemHeight = windowHeight - tabBarHeight;
-  const { videos } = useUserVideos();
-
-  const data = [...videos, ...catalog];
+  const data = useVisibleFeed();
 
   return (
     <View style={styles.container}>

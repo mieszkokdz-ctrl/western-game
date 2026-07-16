@@ -4,6 +4,7 @@ import type { Title } from '../data/catalog';
 type UserVideosContextValue = {
   videos: Title[];
   addVideo: (uri: string, caption: string) => void;
+  deleteVideo: (id: string) => void;
 };
 
 const UserVideosContext = createContext<UserVideosContextValue | null>(null);
@@ -30,7 +31,11 @@ export function UserVideosProvider({ children }: { children: React.ReactNode }) 
     setVideos(prev => [video, ...prev]);
   }, []);
 
-  const value = useMemo(() => ({ videos, addVideo }), [videos, addVideo]);
+  const deleteVideo = useCallback((id: string) => {
+    setVideos(prev => prev.filter(v => v.id !== id));
+  }, []);
+
+  const value = useMemo(() => ({ videos, addVideo, deleteVideo }), [videos, addVideo, deleteVideo]);
 
   return <UserVideosContext.Provider value={value}>{children}</UserVideosContext.Provider>;
 }

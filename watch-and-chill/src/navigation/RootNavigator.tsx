@@ -1,8 +1,13 @@
 import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View } from 'react-native';
+import { useConsent } from '../context/ConsentContext';
+import ConsentScreen from '../screens/ConsentScreen';
 import CreateScreen from '../screens/CreateScreen';
 import FeedModalScreen from '../screens/FeedModalScreen';
 import PostScreen from '../screens/PostScreen';
+import PrivacyScreen from '../screens/PrivacyScreen';
+import TermsScreen from '../screens/TermsScreen';
 import { colors } from '../theme/colors';
 import MainTabs from './MainTabs';
 import type { RootStackParamList } from './types';
@@ -21,14 +26,37 @@ const navTheme = {
   },
 };
 
+const legalScreenOptions = {
+  headerShown: true,
+  headerTintColor: colors.text,
+  headerStyle: { backgroundColor: colors.surface },
+  headerShadowVisible: false,
+} as const;
+
 export default function RootNavigator() {
+  const { isLoading, hasAccepted } = useConsent();
+
+  if (isLoading) {
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
+
   return (
     <NavigationContainer theme={navTheme}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{ headerShown: false }}
+        initialRouteName={hasAccepted ? 'MainTabs' : 'Consent'}
+      >
+        <Stack.Screen name="Consent" component={ConsentScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="Feed" component={FeedModalScreen} options={{ animation: 'fade' }} />
         <Stack.Screen name="Create" component={CreateScreen} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="Post" component={PostScreen} options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="Terms" component={TermsScreen} options={{ ...legalScreenOptions, title: 'Regulamin' }} />
+        <Stack.Screen
+          name="Privacy"
+          component={PrivacyScreen}
+          options={{ ...legalScreenOptions, title: 'Polityka Prywatności' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

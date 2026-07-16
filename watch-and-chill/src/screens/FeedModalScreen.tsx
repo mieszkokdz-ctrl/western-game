@@ -3,8 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Dimensions, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import VerticalFeed from '../components/VerticalFeed';
-import { catalog } from '../data/catalog';
-import { useUserVideos } from '../context/UserVideosContext';
+import { useVisibleFeed } from '../hooks/useVisibleFeed';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
@@ -13,10 +12,9 @@ type Route = { key: string; name: 'Feed'; params: RootStackParamList['Feed'] };
 export default function FeedModalScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<Route>();
-  const { videos } = useUserVideos();
   const windowHeight = Dimensions.get('window').height;
 
-  const data = [...videos, ...catalog];
+  const data = useVisibleFeed();
   const initialIndex = Math.max(
     0,
     data.findIndex(t => t.id === route.params.initialId)

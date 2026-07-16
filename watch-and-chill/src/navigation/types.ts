@@ -9,8 +9,11 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Consent: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   Feed: { initialId: string };
   Create: undefined;
   Post: { uri: string };
+  Terms: undefined;
+  Privacy: undefined;
 };

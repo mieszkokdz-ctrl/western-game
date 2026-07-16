@@ -5,6 +5,7 @@ import { colors } from '../theme/colors';
 type Props = {
   title: Title;
   onPress: () => void;
+  onLongPress?: () => void;
 };
 
 function formatCount(n: number): string {
@@ -13,9 +14,9 @@ function formatCount(n: number): string {
   return String(n);
 }
 
-export default function GridThumb({ title, onPress }: Props) {
+export default function GridThumb({ title, onPress, onLongPress }: Props) {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.container} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.8}>
       {title.poster ? (
         <Image source={{ uri: title.poster }} style={styles.thumb} />
       ) : (

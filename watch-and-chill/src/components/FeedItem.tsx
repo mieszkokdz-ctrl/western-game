@@ -1,6 +1,7 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import ModerationSheet from './ModerationSheet';
 import { useLikes } from '../context/LikesContext';
 import type { Title } from '../data/catalog';
 import { colors } from '../theme/colors';
@@ -20,6 +21,7 @@ function formatCount(n: number): string {
 export default function FeedItem({ title, active, height }: Props) {
   const { isLiked, toggleLike } = useLikes();
   const liked = isLiked(title.id);
+  const [moderationVisible, setModerationVisible] = useState(false);
 
   const player = useVideoPlayer(title.videoUrl, p => {
     p.loop = true;
@@ -59,6 +61,11 @@ export default function FeedItem({ title, active, height }: Props) {
           <Text style={styles.railIcon}>↗️</Text>
           <Text style={styles.railLabel}>{formatCount(title.shares)}</Text>
         </View>
+        <TouchableWithoutFeedback onPress={() => setModerationVisible(true)} testID="moderation-menu-button">
+          <View style={styles.railItem}>
+            <Text style={styles.railIcon}>⋯</Text>
+          </View>
+        </TouchableWithoutFeedback>
       </View>
 
       <View style={styles.bottomInfo} pointerEvents="none">
@@ -67,6 +74,8 @@ export default function FeedItem({ title, active, height }: Props) {
           {title.caption}
         </Text>
       </View>
+
+      <ModerationSheet title={title} visible={moderationVisible} onClose={() => setModerationVisible(false)} />
     </View>
   );
 }
