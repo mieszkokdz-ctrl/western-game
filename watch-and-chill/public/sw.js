@@ -1,6 +1,6 @@
-const CACHE_NAME = 'watch-and-chill-v1';
+const CACHE_NAME = 'watch-and-chill-v2';
 
-self.addEventListener('install', event => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -14,18 +14,40 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
+  const { request } = event;
+  if (request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async cache => {
-      const cached = await cache.match(event.request);
-      const network = fetch(event.request)
+  const url = new URL(request.url);
+  // Only manage same-origin app files. Cross-origin requests (video/image CDNs)
+  // go straight to the network so range requests and streaming aren't disturbed.
+  if (url.origin !== self.location.origin) return;
+
+  const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+
+  if (isNavigation) {
+    // Network-first for the HTML shell: a fresh deploy must be picked up right
+    // away, since it references hashed JS bundle filenames that change on every
+    // build — a stale cached shell would point at a bundle that no longer exists.
+    event.respondWith(
+      fetch(request, { cache: 'no-store' })
         .then(response => {
-          if (response.ok) cache.put(event.request, response.clone());
+          caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
           return response;
         })
-        .catch(() => cached);
-      return cached || network;
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Cache-first for hashed static assets (JS bundles, icons, manifest) — safe to
+  // cache aggressively since their filenames change whenever their content does.
+  event.respondWith(
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+      return fetch(request).then(response => {
+        if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+        return response;
+      });
     })
   );
 });
