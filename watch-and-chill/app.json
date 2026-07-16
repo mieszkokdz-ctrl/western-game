@@ -5,21 +5,36 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Watch&Chill potrzebuje dostępu do aparatu, aby nagrywać Twoje filmiki.",
+        "NSMicrophoneUsageDescription": "Watch&Chill potrzebuje dostępu do mikrofonu, aby nagrywać dźwięk w Twoich filmikach."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B0B10",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Watch&Chill potrzebuje dostępu do aparatu, aby nagrywać Twoje filmiki.",
+          "microphonePermission": "Watch&Chill potrzebuje dostępu do mikrofonu, aby nagrywać dźwięk w Twoich filmikach.",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }

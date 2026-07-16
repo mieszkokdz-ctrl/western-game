@@ -1,15 +1,18 @@
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { WatchlistProvider } from './src/context/WatchlistContext';
+import { LikesProvider } from './src/context/LikesContext';
+import { UserVideosProvider } from './src/context/UserVideosContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
   return (
     <SafeAreaProvider>
-      <WatchlistProvider>
-        <StatusBar style="light" />
-        <RootNavigator />
-      </WatchlistProvider>
+      <UserVideosProvider>
+        <LikesProvider>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </LikesProvider>
+      </UserVideosProvider>
     </SafeAreaProvider>
   );
 }

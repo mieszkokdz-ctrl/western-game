@@ -1,7 +1,8 @@
 import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import DetailsScreen from '../screens/DetailsScreen';
-import PlayerScreen from '../screens/PlayerScreen';
+import CreateScreen from '../screens/CreateScreen';
+import FeedModalScreen from '../screens/FeedModalScreen';
+import PostScreen from '../screens/PostScreen';
 import { colors } from '../theme/colors';
 import MainTabs from './MainTabs';
 import type { RootStackParamList } from './types';
@@ -25,8 +26,9 @@ export default function RootNavigator() {
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="MainTabs" component={MainTabs} />
-        <Stack.Screen name="Details" component={DetailsScreen} />
-        <Stack.Screen name="Player" component={PlayerScreen} options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="Feed" component={FeedModalScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="Create" component={CreateScreen} options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="Post" component={PostScreen} options={{ presentation: 'fullScreenModal' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

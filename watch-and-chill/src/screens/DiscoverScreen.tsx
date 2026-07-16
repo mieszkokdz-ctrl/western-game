@@ -3,12 +3,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PosterCard from '../components/PosterCard';
-import { catalog, type Title } from '../data/catalog';
+import GridThumb from '../components/GridThumb';
+import { catalog } from '../data/catalog';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
-export default function SearchScreen() {
+export default function DiscoverScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [query, setQuery] = useState('');
 
@@ -16,19 +16,20 @@ export default function SearchScreen() {
     const q = query.trim().toLowerCase();
     if (!q) return catalog;
     return catalog.filter(
-      t => t.title.toLowerCase().includes(q) || t.category.toLowerCase().includes(q)
+      t =>
+        t.title.toLowerCase().includes(q) ||
+        t.category.toLowerCase().includes(q) ||
+        t.author.toLowerCase().includes(q)
     );
   }, [query]);
 
-  const openDetails = (title: Title) => navigation.navigate('Details', { titleId: title.id });
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.heading}>Szukaj</Text>
+      <Text style={styles.heading}>Odkrywaj</Text>
       <TextInput
         value={query}
         onChangeText={setQuery}
-        placeholder="Tytuły, kategorie..."
+        placeholder="Szukaj filmów, autorów, kategorii..."
         placeholderTextColor={colors.textMuted}
         style={styles.input}
       />
@@ -36,13 +37,10 @@ export default function SearchScreen() {
         data={results}
         keyExtractor={item => item.id}
         numColumns={3}
-        columnWrapperStyle={styles.row}
         contentContainerStyle={styles.grid}
         ListEmptyComponent={<Text style={styles.empty}>Brak wyników</Text>}
         renderItem={({ item }) => (
-          <View style={styles.gridItem}>
-            <PosterCard title={item} onPress={() => openDetails(item)} />
-          </View>
+          <GridThumb title={item} onPress={() => navigation.navigate('Feed', { initialId: item.id })} />
         )}
       />
     </SafeAreaView>
@@ -73,12 +71,6 @@ const styles = StyleSheet.create({
   },
   grid: {
     paddingBottom: 40,
-  },
-  row: {
-    justifyContent: 'flex-start',
-  },
-  gridItem: {
-    width: '33%',
   },
   empty: {
     color: colors.textMuted,
