@@ -77,6 +77,18 @@ export const catalog: Title[] = [
     poster: 'https://picsum.photos/seed/wc-gaming-montage/400/700',
     videoUrl: `${PIXABAY}/2023/09/15/180776-865216724_large.mp4`,
   },
+  {
+    id: 'gaming-lan-center',
+    title: 'Ranked w salonie gier',
+    author: '@gamerka_pl',
+    category: 'Gry',
+    caption: 'Piątkowy wieczór to zawsze ranked 🎮💜 #leagueoflegends #gaming',
+    likes: 231600,
+    comments: 4870,
+    shares: 2340,
+    poster: 'https://picsum.photos/seed/wc-gaming-lan/400/700',
+    videoUrl: `${PEXELS}/7915036/7915036-hd_1080_1920_30fps.mp4`,
+  },
 
   // --- Sport ---
   {
