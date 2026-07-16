@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "watch-and-chill",
+    "name": "Watch&Chill",
     "slug": "watch-and-chill",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0B0B10",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -24,7 +24,17 @@
       "permissions": ["CAMERA", "RECORD_AUDIO"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Watch&Chill",
+      "shortName": "Watch&Chill",
+      "lang": "pl",
+      "description": "Krótkie filmiki i shorty w stylu watch & chill — oglądaj, twórz, publikuj.",
+      "themeColor": "#000000",
+      "backgroundColor": "#000000",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/",
+      "output": "single"
     },
     "plugins": [
       [
