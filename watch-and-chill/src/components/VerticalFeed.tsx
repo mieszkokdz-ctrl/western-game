@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ViewToken } from 'react-native';
-import { FlatList } from 'react-native';
+import { FlatList, Platform } from 'react-native';
 import FeedItem from './FeedItem';
 import type { Title } from '../data/catalog';
 
@@ -38,7 +38,10 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       viewabilityConfig={viewabilityConfig}
       windowSize={3}
       maxToRenderPerBatch={2}
-      removeClippedSubviews
+      // react-native-web's clipping measurement is unreliable and can leave
+      // off-screen items stuck invisible instead of clipped, so this native-only
+      // perf optimization is skipped on web.
+      removeClippedSubviews={Platform.OS !== 'web'}
     />
   );
 }

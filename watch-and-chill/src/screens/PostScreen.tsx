@@ -29,7 +29,13 @@ export default function PostScreen() {
 
   return (
     <View style={styles.container}>
-      <VideoView player={player} style={StyleSheet.absoluteFill} nativeControls={false} contentFit="cover" />
+      <VideoView
+        player={player}
+        style={StyleSheet.absoluteFill}
+        nativeControls={false}
+        contentFit="cover"
+        playsInline
+      />
 
       <SafeAreaView style={styles.topBar} edges={['top']}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
