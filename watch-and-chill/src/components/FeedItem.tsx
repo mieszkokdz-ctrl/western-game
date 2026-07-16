@@ -1,6 +1,6 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import ModerationSheet from './ModerationSheet';
 import { useLikes } from '../context/LikesContext';
 import type { Title } from '../data/catalog';
@@ -50,7 +50,6 @@ export default function FeedItem({ title, active, height }: Props) {
 
   return (
     <View style={[styles.container, { height }]}>
-      <Image source={{ uri: title.poster }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <TouchableWithoutFeedback onPress={togglePlayback}>
         <VideoView
           player={player}

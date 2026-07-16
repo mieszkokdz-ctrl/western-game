@@ -26,7 +26,7 @@ export const catalog: Title[] = [
     likes: 312400,
     comments: 6750,
     shares: 3410,
-    poster: 'https://picsum.photos/seed/wc-gaming-cyberpunk/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2023/10/18/185526-875605342_large.mp4`,
   },
   {
@@ -38,7 +38,7 @@ export const catalog: Title[] = [
     likes: 184200,
     comments: 3120,
     shares: 1450,
-    poster: 'https://picsum.photos/seed/wc-gaming-controller/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2021/07/25/82663-580974605_large.mp4`,
   },
   {
@@ -50,7 +50,7 @@ export const catalog: Title[] = [
     likes: 98700,
     comments: 1870,
     shares: 640,
-    poster: 'https://picsum.photos/seed/wc-gaming-night/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2021/02/23/66317-516453498_large.mp4`,
   },
   {
@@ -62,7 +62,7 @@ export const catalog: Title[] = [
     likes: 205300,
     comments: 4020,
     shares: 1760,
-    poster: 'https://picsum.photos/seed/wc-gaming-ps/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2019/09/06/26619-359604050_large.mp4`,
   },
   {
@@ -74,7 +74,7 @@ export const catalog: Title[] = [
     likes: 267800,
     comments: 5430,
     shares: 2980,
-    poster: 'https://picsum.photos/seed/wc-gaming-montage/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2023/09/15/180776-865216724_large.mp4`,
   },
   {
@@ -86,7 +86,7 @@ export const catalog: Title[] = [
     likes: 231600,
     comments: 4870,
     shares: 2340,
-    poster: 'https://picsum.photos/seed/wc-gaming-lan/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/7915036/7915036-hd_1080_1920_30fps.mp4`,
   },
 
@@ -100,7 +100,7 @@ export const catalog: Title[] = [
     likes: 91200,
     comments: 1480,
     shares: 520,
-    poster: 'https://picsum.photos/seed/wc-sport-gym/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/4057877/4057877-sd_352_640_30fps.mp4`,
   },
   {
@@ -112,7 +112,7 @@ export const catalog: Title[] = [
     likes: 58300,
     comments: 940,
     shares: 310,
-    poster: 'https://picsum.photos/seed/wc-sport-home/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/36014878/15271669_360_640_25fps.mp4`,
   },
 
@@ -126,7 +126,7 @@ export const catalog: Title[] = [
     likes: 121500,
     comments: 2340,
     shares: 870,
-    poster: 'https://picsum.photos/seed/wc-food-bbq/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2022/07/20/124829-732633113_large.mp4`,
   },
   {
@@ -138,7 +138,7 @@ export const catalog: Title[] = [
     likes: 67300,
     comments: 980,
     shares: 340,
-    poster: 'https://picsum.photos/seed/wc-food-popcorn/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2020/04/28/37441-414024639_large.mp4`,
   },
   {
@@ -150,7 +150,7 @@ export const catalog: Title[] = [
     likes: 41800,
     comments: 620,
     shares: 180,
-    poster: 'https://picsum.photos/seed/wc-food-salad/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2021/04/15/71125-537986747_large.mp4`,
   },
   {
@@ -162,7 +162,7 @@ export const catalog: Title[] = [
     likes: 98600,
     comments: 1840,
     shares: 720,
-    poster: 'https://picsum.photos/seed/wc-food-steak/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2023/04/13/156780-816912389_large.mp4`,
   },
 
@@ -176,7 +176,7 @@ export const catalog: Title[] = [
     likes: 176300,
     comments: 3210,
     shares: 1980,
-    poster: 'https://picsum.photos/seed/wc-travel-luggage/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/20755400/20755400-hd_1080_1920_24fps.mp4`,
   },
   {
@@ -188,7 +188,7 @@ export const catalog: Title[] = [
     likes: 84700,
     comments: 1360,
     shares: 590,
-    poster: 'https://picsum.photos/seed/wc-travel-city/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/18516187/18516187-hd_1080_1920_30fps.mp4`,
   },
   {
@@ -200,7 +200,7 @@ export const catalog: Title[] = [
     likes: 62800,
     comments: 970,
     shares: 410,
-    poster: 'https://picsum.photos/seed/wc-travel-dusk/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/20601705/20601705-hd_720_1280_24fps.mp4`,
   },
   {
@@ -212,7 +212,7 @@ export const catalog: Title[] = [
     likes: 47200,
     comments: 690,
     shares: 260,
-    poster: 'https://picsum.photos/seed/wc-travel-italy/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/27604262/12183634_360_640_24fps.mp4`,
   },
   {
@@ -224,7 +224,7 @@ export const catalog: Title[] = [
     likes: 55900,
     comments: 810,
     shares: 350,
-    poster: 'https://picsum.photos/seed/wc-travel-cablebus/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/32062161/13666344_360_640_50fps.mp4`,
   },
 
@@ -238,7 +238,7 @@ export const catalog: Title[] = [
     likes: 198300,
     comments: 3640,
     shares: 2410,
-    poster: 'https://picsum.photos/seed/wc-animals-kangaroo/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/4179958/4179958-hd_720_1280_30fps.mp4`,
   },
   {
@@ -250,7 +250,7 @@ export const catalog: Title[] = [
     likes: 143700,
     comments: 2380,
     shares: 1560,
-    poster: 'https://picsum.photos/seed/wc-animals-deer/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/18201427/18201427-hd_720_1280_30fps.mp4`,
   },
   {
@@ -262,7 +262,7 @@ export const catalog: Title[] = [
     likes: 76400,
     comments: 1120,
     shares: 480,
-    poster: 'https://picsum.photos/seed/wc-animals-squirrel/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/34464347/14603894_360_640_59fps.mp4`,
   },
 
@@ -276,7 +276,7 @@ export const catalog: Title[] = [
     likes: 34500,
     comments: 480,
     shares: 190,
-    poster: 'https://picsum.photos/seed/wc-film-strip/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2016/09/13/5129-183300007_large.mp4`,
   },
   {
@@ -288,7 +288,7 @@ export const catalog: Title[] = [
     likes: 41200,
     comments: 610,
     shares: 240,
-    poster: 'https://picsum.photos/seed/wc-film-projector/400/700',
+    poster: '',
     videoUrl: `${PIXABAY}/2016/07/27/4050-176748994_large.mp4`,
   },
 
@@ -302,7 +302,7 @@ export const catalog: Title[] = [
     likes: 112800,
     comments: 1670,
     shares: 690,
-    poster: 'https://picsum.photos/seed/wc-relax-fireplace/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/11187395/11187395-hd_720_1280_30fps.mp4`,
   },
   {
@@ -314,7 +314,7 @@ export const catalog: Title[] = [
     likes: 58700,
     comments: 780,
     shares: 320,
-    poster: 'https://picsum.photos/seed/wc-relax-flame/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/9348931/9348931-hd_720_1280_30fps.mp4`,
   },
   {
@@ -326,7 +326,7 @@ export const catalog: Title[] = [
     likes: 224600,
     comments: 4180,
     shares: 3020,
-    poster: 'https://picsum.photos/seed/wc-relax-sunset/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/5975953/5975953-hd_1080_1920_30fps.mp4`,
   },
   {
@@ -338,7 +338,7 @@ export const catalog: Title[] = [
     likes: 89100,
     comments: 1290,
     shares: 610,
-    poster: 'https://picsum.photos/seed/wc-relax-waterfall/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/9755176/9755176-hd_1080_1920_30fps.mp4`,
   },
   {
@@ -350,7 +350,7 @@ export const catalog: Title[] = [
     likes: 67900,
     comments: 940,
     shares: 380,
-    poster: 'https://picsum.photos/seed/wc-relax-snow/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/34994456/14825775_360_640_30fps.mp4`,
   },
   {
@@ -362,7 +362,7 @@ export const catalog: Title[] = [
     likes: 51300,
     comments: 720,
     shares: 290,
-    poster: 'https://picsum.photos/seed/wc-relax-rain/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/34719445/14717138_360_640_30fps.mp4`,
   },
 
@@ -376,7 +376,7 @@ export const catalog: Title[] = [
     likes: 118500,
     comments: 1920,
     shares: 980,
-    poster: 'https://picsum.photos/seed/wc-tech-vr/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/10449906/10449906-hd_720_1280_30fps.mp4`,
   },
 
@@ -390,7 +390,7 @@ export const catalog: Title[] = [
     likes: 96400,
     comments: 1510,
     shares: 640,
-    poster: 'https://picsum.photos/seed/wc-art-graffiti/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/7108918/7108918-hd_720_1366_25fps.mp4`,
   },
   {
@@ -402,7 +402,7 @@ export const catalog: Title[] = [
     likes: 43200,
     comments: 610,
     shares: 250,
-    poster: 'https://picsum.photos/seed/wc-art-abstract/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/9668305/9668305-hd_720_1280_25fps.mp4`,
   },
 
@@ -416,7 +416,7 @@ export const catalog: Title[] = [
     likes: 74600,
     comments: 1080,
     shares: 590,
-    poster: 'https://picsum.photos/seed/wc-culture-dance/400/700',
+    poster: '',
     videoUrl: `${PEXELS}/36431226/15447278_360_640_30fps.mp4`,
   },
 ];
