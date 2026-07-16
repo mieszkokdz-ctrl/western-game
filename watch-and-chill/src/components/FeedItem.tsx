@@ -22,10 +22,18 @@ export default function FeedItem({ title, active, height }: Props) {
   const { isLiked, toggleLike } = useLikes();
   const liked = isLiked(title.id);
   const [moderationVisible, setModerationVisible] = useState(false);
+  const [muted, setMuted] = useState(true);
 
   const player = useVideoPlayer(title.videoUrl, p => {
     p.loop = true;
+    // Start muted: browsers block autoplay with sound until the user interacts,
+    // which would otherwise leave every video stuck on the first frame.
+    p.muted = true;
   });
+
+  useEffect(() => {
+    player.muted = muted;
+  }, [muted, player]);
 
   useEffect(() => {
     if (active) {
@@ -64,6 +72,11 @@ export default function FeedItem({ title, active, height }: Props) {
         <TouchableWithoutFeedback onPress={() => setModerationVisible(true)} testID="moderation-menu-button">
           <View style={styles.railItem}>
             <Text style={styles.railIcon}>⋯</Text>
+          </View>
+        </TouchableWithoutFeedback>
+        <TouchableWithoutFeedback onPress={() => setMuted(m => !m)} testID="mute-button">
+          <View style={styles.railItem}>
+            <Text style={styles.railIcon}>{muted ? '🔇' : '🔊'}</Text>
           </View>
         </TouchableWithoutFeedback>
       </View>
