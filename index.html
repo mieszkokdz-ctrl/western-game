@@ -43,9 +43,30 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
     <script>
+      // Belt-and-suspenders cache clearing: wipe any leftover Cache Storage
+      // entries on every single load, independent of the service worker's own
+      // cleanup, so a stale cached response can never be served from here.
+      if ('caches' in window) {
+        caches.keys().then(keys => keys.forEach(key => caches.delete(key))).catch(() => {});
+      }
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/western-game/sw.js').catch(() => {});
+          navigator.serviceWorker
+            .register('/western-game/sw.js')
+            .then(registration => {
+              registration.update().catch(() => {});
+              // If a new service worker takes control after this page has
+              // already loaded, reload once to pick up the fresh version
+              // instead of leaving the user stuck on an outdated shell.
+              let hasReloaded = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (hasReloaded) return;
+                hasReloaded = true;
+                window.location.reload();
+              });
+            })
+            .catch(() => {});
         });
       }
     </script>
