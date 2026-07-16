@@ -101,7 +101,7 @@ export const catalog: Title[] = [
     comments: 1480,
     shares: 520,
     poster: '',
-    videoUrl: `${PEXELS}/4057877/4057877-sd_352_640_30fps.mp4`,
+    videoUrl: 'https://videos.pexels.com/video-files/4057419/4057419-hd_1080_1920_25fps.mp4',
   },
   {
     id: 'sport-home-workout',
@@ -113,7 +113,7 @@ export const catalog: Title[] = [
     comments: 940,
     shares: 310,
     poster: '',
-    videoUrl: `${PEXELS}/36014878/15271669_360_640_25fps.mp4`,
+    videoUrl: 'https://videos.pexels.com/video-files/7164241/7164241-hd_1080_1920_30fps.mp4',
   },
 
   // --- Jedzenie ---
@@ -417,7 +417,7 @@ export const catalog: Title[] = [
     comments: 1080,
     shares: 590,
     poster: '',
-    videoUrl: `${PEXELS}/36431226/15447278_360_640_30fps.mp4`,
+    videoUrl: 'https://videos.pexels.com/video-files/33835057/14359223_1080_1920_30fps.mp4',
   },
 ];
 
