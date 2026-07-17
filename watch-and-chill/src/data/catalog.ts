@@ -12,7 +12,20 @@ export type Title = {
   isMine?: boolean;
 };
 
-export const catalog: Title[] = [];
+export const catalog: Title[] = [
+  {
+    id: 'gaming-lan-center',
+    title: 'Ranked w salonie gier',
+    author: '@gamerka_pl',
+    category: 'Gry',
+    caption: 'Piątkowy wieczór to zawsze ranked 🎮💜 #leagueoflegends #gaming',
+    likes: 231600,
+    comments: 4870,
+    shares: 2340,
+    poster: '',
+    videoUrl: 'https://videos.pexels.com/video-files/7915036/7915036-hd_1080_1920_30fps.mp4',
+  },
+];
 
 export const categories = Array.from(new Set(catalog.map(t => t.category)));
 
