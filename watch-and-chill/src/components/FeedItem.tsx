@@ -2,6 +2,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import CommentsSheet from './CommentsSheet';
+import CreatorProfileSheet from './CreatorProfileSheet';
 import ModerationSheet from './ModerationSheet';
 import { useComments } from '../context/CommentsContext';
 import { useLikes } from '../context/LikesContext';
@@ -27,6 +28,7 @@ export default function FeedItem({ title, active, height }: Props) {
   const commentCount = getComments(title.id).length;
   const [moderationVisible, setModerationVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
+  const [creatorProfileVisible, setCreatorProfileVisible] = useState(false);
   const [muted, setMuted] = useState(true);
 
   const player = useVideoPlayer(title.videoUrl, p => {
@@ -66,9 +68,11 @@ export default function FeedItem({ title, active, height }: Props) {
       </TouchableWithoutFeedback>
 
       <View style={styles.rightRail} pointerEvents="box-none">
-        <View style={styles.avatarWrap}>
-          <Image source={require('../../assets/icon.png')} style={styles.avatar} />
-        </View>
+        <TouchableWithoutFeedback onPress={() => setCreatorProfileVisible(true)} testID="creator-avatar-button">
+          <View style={styles.avatarWrap}>
+            <Image source={require('../../assets/icon.png')} style={styles.avatar} />
+          </View>
+        </TouchableWithoutFeedback>
         <TouchableWithoutFeedback onPress={() => toggleLike(title.id)}>
           <View style={styles.railItem}>
             <Text style={[styles.railIcon, liked && { color: colors.primary }]}>{liked ? '❤️' : '🤍'}</Text>
@@ -106,6 +110,11 @@ export default function FeedItem({ title, active, height }: Props) {
 
       <ModerationSheet title={title} visible={moderationVisible} onClose={() => setModerationVisible(false)} />
       <CommentsSheet title={title} visible={commentsVisible} onClose={() => setCommentsVisible(false)} />
+      <CreatorProfileSheet
+        author={title.author}
+        visible={creatorProfileVisible}
+        onClose={() => setCreatorProfileVisible(false)}
+      />
     </View>
   );
 }
