@@ -19,7 +19,7 @@ export const catalog: Title[] = [
     author: '@gamerka_pl',
     category: 'Gry',
     caption: 'Piątkowy wieczór to zawsze ranked 🎮💜 #leagueoflegends #gaming',
-    likes: 231600,
+    likes: 0,
     comments: 4870,
     shares: 2340,
     poster: '',
