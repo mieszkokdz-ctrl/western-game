@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import type { ViewToken } from 'react-native';
-import { FlatList, Platform } from 'react-native';
+import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
 import type { Title } from '../data/catalog';
+import { colors } from '../theme/colors';
 
 type Props = {
   data: Title[];
@@ -42,6 +43,29 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // off-screen items stuck invisible instead of clipped, so this native-only
       // perf optimization is skipped on web.
       removeClippedSubviews={Platform.OS !== 'web'}
+      ListEmptyComponent={
+        <View style={[styles.empty, { height }]}>
+          <Text style={styles.emptyText}>Brak filmów</Text>
+          <Text style={styles.emptySubtext}>Nagraj pierwszy filmik przyciskiem + poniżej</Text>
+        </View>
+      }
     />
   );
 }
+
+const styles = StyleSheet.create({
+  empty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyText: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  emptySubtext: {
+    color: colors.textMuted,
+    fontSize: 14,
+  },
+});
