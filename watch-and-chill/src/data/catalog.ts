@@ -16,7 +16,7 @@ export const catalog: Title[] = [
   {
     id: 'gaming-lan-center',
     title: 'Ranked w salonie gier',
-    author: '@gamerka_pl',
+    author: '@appcreator',
     category: 'Gry',
     caption: 'Piątkowy wieczór to zawsze ranked 🎮💜 #leagueoflegends #gaming',
     likes: 0,
