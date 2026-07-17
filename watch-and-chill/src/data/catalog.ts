@@ -89,6 +89,18 @@ export const catalog: Title[] = [
     poster: '',
     videoUrl: `${PEXELS}/7915036/7915036-hd_1080_1920_30fps.mp4`,
   },
+  {
+    id: 'gaming-setup-tour',
+    title: 'Mój odświeżony setup',
+    author: '@gracz_pro',
+    category: 'Gry',
+    caption: 'W końcu skończone 🎮💡 #gamingsetup #gaming',
+    likes: 156800,
+    comments: 2940,
+    shares: 1370,
+    poster: '',
+    videoUrl: `${PEXELS}/6395999/6395999-hd_1080_1920_25fps.mp4`,
+  },
 
   // --- Sport ---
   {
