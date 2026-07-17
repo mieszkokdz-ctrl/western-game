@@ -1,5 +1,10 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import type { Title } from '../data/catalog';
+import { deleteVideoBlob, getVideoBlob, saveVideoBlob } from '../utils/videoBlobStore';
+
+const STORAGE_KEY = 'watchandchill.userVideos.v1';
 
 type UserVideosContextValue = {
   videos: Title[];
@@ -14,9 +19,34 @@ let nextId = 1;
 export function UserVideosProvider({ children }: { children: React.ReactNode }) {
   const [videos, setVideos] = useState<Title[]>([]);
 
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY).then(async value => {
+      if (!value) return;
+      const stored: Title[] = JSON.parse(value);
+      if (Platform.OS !== 'web') {
+        setVideos(stored);
+        return;
+      }
+      // On web, the recorded video itself lives in IndexedDB — the blob: URL
+      // saved alongside it dies with the page, so a fresh one is minted here.
+      const restored = await Promise.all(
+        stored.map(async video => {
+          const blob = await getVideoBlob(video.id).catch(() => null);
+          return blob ? { ...video, videoUrl: URL.createObjectURL(blob) } : video;
+        })
+      );
+      setVideos(restored);
+    });
+  }, []);
+
+  const persist = (next: Title[]) => {
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
   const addVideo = useCallback((uri: string, caption: string, author: string) => {
+    const id = `mine-${nextId++}`;
     const video: Title = {
-      id: `mine-${nextId++}`,
+      id,
       title: 'Twój short',
       author,
       category: 'Twoje',
@@ -28,11 +58,28 @@ export function UserVideosProvider({ children }: { children: React.ReactNode }) 
       videoUrl: uri,
       isMine: true,
     };
-    setVideos(prev => [video, ...prev]);
+    setVideos(prev => {
+      const next = [video, ...prev];
+      persist(next);
+      return next;
+    });
+    if (Platform.OS === 'web' && uri.startsWith('blob:')) {
+      fetch(uri)
+        .then(res => res.blob())
+        .then(blob => saveVideoBlob(id, blob))
+        .catch(() => {});
+    }
   }, []);
 
   const deleteVideo = useCallback((id: string) => {
-    setVideos(prev => prev.filter(v => v.id !== id));
+    setVideos(prev => {
+      const next = prev.filter(v => v.id !== id);
+      persist(next);
+      return next;
+    });
+    if (Platform.OS === 'web') {
+      deleteVideoBlob(id).catch(() => {});
+    }
   }, []);
 
   const value = useMemo(() => ({ videos, addVideo, deleteVideo }), [videos, addVideo, deleteVideo]);
