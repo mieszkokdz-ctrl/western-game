@@ -33,7 +33,7 @@ export default function PostScreen() {
     <View style={styles.container}>
       <VideoView
         player={player}
-        style={StyleSheet.absoluteFill}
+        style={[StyleSheet.absoluteFill, styles.video]}
         nativeControls={false}
         contentFit="cover"
         playsInline
@@ -93,6 +93,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
   },
   topBar: {
     position: 'absolute',

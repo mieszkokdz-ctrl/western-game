@@ -57,14 +57,19 @@ export default function FeedItem({ title, active, height }: Props) {
 
   return (
     <View style={[styles.container, { height }]}>
+      <VideoView
+        player={player}
+        style={[StyleSheet.absoluteFill, styles.video]}
+        nativeControls={false}
+        contentFit="cover"
+        playsInline
+      />
+      {/* expo-video's VideoView doesn't forward touch-responder props to its
+          underlying native <video> element, so wrapping it directly in
+          TouchableWithoutFeedback never receives taps. A separate transparent
+          layer on top reliably captures them instead. */}
       <TouchableWithoutFeedback onPress={togglePlayback}>
-        <VideoView
-          player={player}
-          style={StyleSheet.absoluteFill}
-          nativeControls={false}
-          contentFit="cover"
-          playsInline
-        />
+        <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
 
       <View style={styles.rightRail} pointerEvents="box-none">
@@ -124,6 +129,10 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#000',
     justifyContent: 'flex-end',
+  },
+  video: {
+    width: '100%',
+    height: '100%',
   },
   rightRail: {
     position: 'absolute',
