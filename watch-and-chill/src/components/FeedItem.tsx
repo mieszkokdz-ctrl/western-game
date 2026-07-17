@@ -1,6 +1,6 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import CommentsSheet from './CommentsSheet';
 import ModerationSheet from './ModerationSheet';
 import { useComments } from '../context/CommentsContext';
@@ -66,6 +66,9 @@ export default function FeedItem({ title, active, height }: Props) {
       </TouchableWithoutFeedback>
 
       <View style={styles.rightRail} pointerEvents="box-none">
+        <View style={styles.avatarWrap}>
+          <Image source={require('../../assets/icon.png')} style={styles.avatar} />
+        </View>
         <TouchableWithoutFeedback onPress={() => toggleLike(title.id)}>
           <View style={styles.railItem}>
             <Text style={[styles.railIcon, liked && { color: colors.primary }]}>{liked ? '❤️' : '🤍'}</Text>
@@ -119,6 +122,19 @@ const styles = StyleSheet.create({
     bottom: 90,
     alignItems: 'center',
     gap: 22,
+  },
+  avatarWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 2,
+    borderColor: '#FFD60A',
+    padding: 2,
+  },
+  avatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   railItem: {
     alignItems: 'center',
