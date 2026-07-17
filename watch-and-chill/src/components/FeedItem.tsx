@@ -81,7 +81,10 @@ export default function FeedItem({ title, active, height }: Props) {
 
       {paused && (
         <View style={styles.pauseOverlay} pointerEvents="none">
-          <Text style={styles.pauseIcon}>⏸</Text>
+          {/* Built from plain bars instead of the ⏸ emoji, since some Android
+              fonts render that codepoint as a solid orange emoji glyph. */}
+          <View style={styles.pauseIconBar} />
+          <View style={styles.pauseIconBar} />
         </View>
       )}
 
@@ -149,14 +152,20 @@ const styles = StyleSheet.create({
   },
   pauseOverlay: {
     ...StyleSheet.absoluteFill,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
   },
-  pauseIcon: {
-    fontSize: 64,
-    color: 'rgba(255,255,255,0.85)',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowRadius: 8,
+  pauseIconBar: {
+    width: 16,
+    height: 56,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   rightRail: {
     position: 'absolute',
