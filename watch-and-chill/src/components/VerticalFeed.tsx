@@ -20,7 +20,10 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
     }
   }).current;
 
-  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 70 }).current;
+  // Lower than the previous 70% so the next video is marked active (and
+  // starts playing) as soon as it's mostly on screen, rather than waiting
+  // for the swipe to almost fully settle — makes transitions feel quicker.
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
   return (
     <FlatList
