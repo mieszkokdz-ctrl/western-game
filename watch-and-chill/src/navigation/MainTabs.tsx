@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import HomeScreen from '../screens/HomeScreen';
 import InboxScreen from '../screens/InboxScreen';
@@ -32,7 +32,10 @@ function CreateTabButton() {
   return (
     <View style={styles.createButtonWrap} pointerEvents="none">
       <View style={styles.createButton}>
-        <Text style={styles.createButtonText}>+</Text>
+        <Image source={require('../../assets/icon.png')} style={styles.createButtonIcon} />
+        <View style={styles.createButtonOverlay}>
+          <Text style={styles.createButtonText}>+</Text>
+        </View>
       </View>
     </View>
   );
@@ -89,18 +92,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   createButton: {
-    width: 46,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: colors.primary,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 2,
+  },
+  createButtonIcon: {
+    width: '100%',
+    height: '100%',
+  },
+  createButtonOverlay: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    backgroundColor: 'rgba(0,0,0,0.25)',
   },
   createButtonText: {
     color: colors.text,
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    marginTop: -2,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowRadius: 3,
   },
 });
