@@ -33,12 +33,15 @@ export default function CreateScreen() {
   };
 
   const startStream = async () => {
+    // Release the current camera before requesting the other-facing one —
+    // most devices only allow one active camera stream at a time, so asking
+    // for a new stream while the old one is still open can hang or fail.
+    stopStream();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: facing },
+        video: { facingMode: { ideal: facing } },
         audio: true,
       });
-      stopStream();
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
