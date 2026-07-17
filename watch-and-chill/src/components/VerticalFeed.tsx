@@ -27,6 +27,10 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       data={data}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
+      // On web, pagingEnabled relies on native CSS scroll-snap for the swipe
+      // physics; -webkit-overflow-scrolling makes that momentum feel smooth
+      // on iOS/Safari instead of stepping abruptly between videos.
+      style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
       // Swiping down reveals the next video (rather than the usual swipe-up).
       inverted
       pagingEnabled
