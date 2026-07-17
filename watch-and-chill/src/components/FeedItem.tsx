@@ -30,6 +30,7 @@ export default function FeedItem({ title, active, height }: Props) {
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [creatorProfileVisible, setCreatorProfileVisible] = useState(false);
   const [muted, setMuted] = useState(true);
+  const [paused, setPaused] = useState(false);
 
   const player = useVideoPlayer(title.videoUrl, p => {
     p.loop = true;
@@ -45,14 +46,20 @@ export default function FeedItem({ title, active, height }: Props) {
   useEffect(() => {
     if (active) {
       player.play();
+      setPaused(false);
     } else {
       player.pause();
     }
   }, [active, player]);
 
   const togglePlayback = () => {
-    if (player.playing) player.pause();
-    else player.play();
+    if (player.playing) {
+      player.pause();
+      setPaused(true);
+    } else {
+      player.play();
+      setPaused(false);
+    }
   };
 
   return (
@@ -71,6 +78,12 @@ export default function FeedItem({ title, active, height }: Props) {
       <TouchableWithoutFeedback onPress={togglePlayback}>
         <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
+
+      {paused && (
+        <View style={styles.pauseOverlay} pointerEvents="none">
+          <Text style={styles.pauseIcon}>⏸</Text>
+        </View>
+      )}
 
       <View style={styles.rightRail} pointerEvents="box-none">
         <TouchableWithoutFeedback onPress={() => setCreatorProfileVisible(true)} testID="creator-avatar-button">
@@ -133,6 +146,17 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  pauseOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pauseIcon: {
+    fontSize: 64,
+    color: 'rgba(255,255,255,0.85)',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowRadius: 8,
   },
   rightRail: {
     position: 'absolute',
