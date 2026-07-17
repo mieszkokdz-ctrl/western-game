@@ -27,6 +27,8 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       data={data}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
+      // Swiping down reveals the next video (rather than the usual swipe-up).
+      inverted
       pagingEnabled
       showsVerticalScrollIndicator={false}
       snapToInterval={height}
