@@ -20,7 +20,7 @@ export const catalog: Title[] = [
     category: 'Gry',
     caption: 'Piątkowy wieczór to zawsze ranked 🎮💜 #leagueoflegends #gaming',
     likes: 0,
-    comments: 4870,
+    comments: 0,
     shares: 2340,
     poster: '',
     videoUrl: 'https://videos.pexels.com/video-files/7915036/7915036-hd_1080_1920_30fps.mp4',

@@ -1,7 +1,9 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import CommentsSheet from './CommentsSheet';
 import ModerationSheet from './ModerationSheet';
+import { useComments } from '../context/CommentsContext';
 import { useLikes } from '../context/LikesContext';
 import type { Title } from '../data/catalog';
 import { colors } from '../theme/colors';
@@ -21,7 +23,10 @@ function formatCount(n: number): string {
 export default function FeedItem({ title, active, height }: Props) {
   const { isLiked, toggleLike } = useLikes();
   const liked = isLiked(title.id);
+  const { getComments } = useComments();
+  const commentCount = getComments(title.id).length;
   const [moderationVisible, setModerationVisible] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
   const [muted, setMuted] = useState(true);
 
   const player = useVideoPlayer(title.videoUrl, p => {
@@ -67,10 +72,12 @@ export default function FeedItem({ title, active, height }: Props) {
             <Text style={styles.railLabel}>{formatCount(title.likes + (liked ? 1 : 0))}</Text>
           </View>
         </TouchableWithoutFeedback>
-        <View style={styles.railItem}>
-          <Text style={styles.railIcon}>💬</Text>
-          <Text style={styles.railLabel}>{formatCount(title.comments)}</Text>
-        </View>
+        <TouchableWithoutFeedback onPress={() => setCommentsVisible(true)} testID="comment-button">
+          <View style={styles.railItem}>
+            <Text style={styles.railIcon}>💬</Text>
+            <Text style={styles.railLabel}>{formatCount(commentCount)}</Text>
+          </View>
+        </TouchableWithoutFeedback>
         <View style={styles.railItem}>
           <Text style={styles.railIcon}>↗️</Text>
           <Text style={styles.railLabel}>{formatCount(title.shares)}</Text>
@@ -95,6 +102,7 @@ export default function FeedItem({ title, active, height }: Props) {
       </View>
 
       <ModerationSheet title={title} visible={moderationVisible} onClose={() => setModerationVisible(false)} />
+      <CommentsSheet title={title} visible={commentsVisible} onClose={() => setCommentsVisible(false)} />
     </View>
   );
 }

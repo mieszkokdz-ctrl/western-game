@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BlockedUsersProvider } from './src/context/BlockedUsersContext';
+import { CommentsProvider } from './src/context/CommentsContext';
 import { ConsentProvider } from './src/context/ConsentContext';
 import { LikesProvider } from './src/context/LikesContext';
 import { ReportsProvider } from './src/context/ReportsContext';
@@ -15,8 +16,10 @@ export default function App() {
           <LikesProvider>
             <BlockedUsersProvider>
               <ReportsProvider>
-                <StatusBar style="light" />
-                <RootNavigator />
+                <CommentsProvider>
+                  <StatusBar style="light" />
+                  <RootNavigator />
+                </CommentsProvider>
               </ReportsProvider>
             </BlockedUsersProvider>
           </LikesProvider>
