@@ -4,6 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUserProfile } from '../context/UserProfileContext';
 import { useUserVideos } from '../context/UserVideosContext';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -14,6 +15,7 @@ export default function PostScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<Route>();
   const { addVideo } = useUserVideos();
+  const { username } = useUserProfile();
   const [caption, setCaption] = useState('');
   const [confirmedRights, setConfirmedRights] = useState(false);
 
@@ -23,7 +25,7 @@ export default function PostScreen() {
   });
 
   const handlePublish = () => {
-    addVideo(route.params.uri, caption);
+    addVideo(route.params.uri, caption, username);
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
   };
 

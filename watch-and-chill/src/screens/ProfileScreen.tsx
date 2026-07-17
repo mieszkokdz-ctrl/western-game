@@ -1,12 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ConfirmModal from '../components/ConfirmModal';
 import GridThumb from '../components/GridThumb';
 import { useBlockedUsers } from '../context/BlockedUsersContext';
 import { useLikes } from '../context/LikesContext';
+import { useUserProfile } from '../context/UserProfileContext';
 import { useUserVideos } from '../context/UserVideosContext';
 import type { RootStackParamList } from '../navigation/types';
 import type { Title } from '../data/catalog';
@@ -17,7 +18,20 @@ export default function ProfileScreen() {
   const { ids } = useLikes();
   const { videos, deleteVideo } = useUserVideos();
   const { blockedAuthors, unblockUser } = useBlockedUsers();
+  const { username, setUsername } = useUserProfile();
   const [pendingDelete, setPendingDelete] = useState<Title | null>(null);
+  const [editVisible, setEditVisible] = useState(false);
+  const [draftUsername, setDraftUsername] = useState(username);
+
+  const openEdit = () => {
+    setDraftUsername(username);
+    setEditVisible(true);
+  };
+
+  const saveUsername = () => {
+    setUsername(draftUsername);
+    setEditVisible(false);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -28,17 +42,18 @@ export default function ProfileScreen() {
         ListHeaderComponent={
           <View>
             <Text style={styles.heading}>Profil</Text>
-            <View style={styles.card}>
+            <TouchableOpacity style={styles.card} onPress={openEdit} testID="edit-username-open">
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>T</Text>
+                <Text style={styles.avatarText}>{username.replace('@', '').charAt(0).toUpperCase() || '?'}</Text>
               </View>
               <View>
-                <Text style={styles.name}>@ty</Text>
+                <Text style={styles.name}>{username}</Text>
                 <Text style={styles.sub}>
                   {videos.length} shortów · {ids.length} polubionych
                 </Text>
+                <Text style={styles.editHint}>Dotknij, aby zmienić nazwę</Text>
               </View>
-            </View>
+            </TouchableOpacity>
             <Text style={styles.sectionTitle}>Twoje shorty</Text>
             {videos.length > 0 && <Text style={styles.hint}>Przytrzymaj short, aby go usunąć.</Text>}
           </View>
@@ -81,6 +96,31 @@ export default function ProfileScreen() {
           </View>
         }
       />
+
+      <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
+        <View style={styles.editBackdrop}>
+          <View style={styles.editCard}>
+            <Text style={styles.editTitle}>Zmień nazwę</Text>
+            <TextInput
+              value={draftUsername}
+              onChangeText={setDraftUsername}
+              placeholder="@twojanazwa"
+              placeholderTextColor={colors.textMuted}
+              style={styles.editInput}
+              autoCapitalize="none"
+              testID="edit-username-input"
+            />
+            <View style={styles.editActions}>
+              <TouchableOpacity style={styles.editButton} onPress={() => setEditVisible(false)}>
+                <Text style={styles.editButtonText}>Anuluj</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.editButton} onPress={saveUsername} testID="edit-username-save">
+                <Text style={[styles.editButtonText, styles.editButtonSave]}>Zapisz</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <ConfirmModal
         visible={pendingDelete != null}
@@ -142,6 +182,60 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     marginTop: 2,
+  },
+  editHint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 4,
+  },
+  editBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  editCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 20,
+  },
+  editTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  editInput: {
+    backgroundColor: colors.surfaceAlt,
+    color: colors.text,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+  },
+  editActions: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 10,
+  },
+  editButton: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: colors.surfaceAlt,
+  },
+  editButtonText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  editButtonSave: {
+    color: colors.primary,
   },
   sectionTitle: {
     color: colors.text,

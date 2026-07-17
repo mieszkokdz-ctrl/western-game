@@ -3,7 +3,7 @@ import type { Title } from '../data/catalog';
 
 type UserVideosContextValue = {
   videos: Title[];
-  addVideo: (uri: string, caption: string) => void;
+  addVideo: (uri: string, caption: string, author: string) => void;
   deleteVideo: (id: string) => void;
 };
 
@@ -14,11 +14,11 @@ let nextId = 1;
 export function UserVideosProvider({ children }: { children: React.ReactNode }) {
   const [videos, setVideos] = useState<Title[]>([]);
 
-  const addVideo = useCallback((uri: string, caption: string) => {
+  const addVideo = useCallback((uri: string, caption: string, author: string) => {
     const video: Title = {
       id: `mine-${nextId++}`,
       title: 'Twój short',
-      author: '@ty',
+      author,
       category: 'Twoje',
       caption: caption.trim() || 'Mój nowy short 🎬',
       likes: 0,
