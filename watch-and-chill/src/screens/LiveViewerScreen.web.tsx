@@ -34,6 +34,7 @@ export default function LiveViewerScreen() {
   // unmute with a tap afterwards (itself a real user gesture, so it works).
   const [muted, setMuted] = useState(true);
   const [needsTap, setNeedsTap] = useState(false);
+  const [playError, setPlayError] = useState('');
 
   useEffect(() => {
     if (!liveId) {
@@ -76,11 +77,20 @@ export default function LiveViewerScreen() {
       // ever means media is genuinely flowing.
       call.on('stream', remoteStream => {
         if (cancelled || !videoRef.current) return;
+        // Force the property directly rather than relying only on the JSX
+        // `muted` prop — React doesn't always sync that attribute to the
+        // live DOM property in time for an imperative play() call right
+        // after srcObject is set, which can make autoplay fail even though
+        // the element looks muted.
+        videoRef.current.muted = true;
         videoRef.current.srcObject = remoteStream;
-        videoRef.current.play().catch(() => {
+        videoRef.current.play().catch((err: DOMException) => {
           // Extremely unlikely once muted, but if it still gets blocked,
           // needsTap lets the user start it with a direct tap instead.
-          if (!cancelled) setNeedsTap(true);
+          if (!cancelled) {
+            setNeedsTap(true);
+            setPlayError(`${err.name}: ${err.message}`);
+          }
         });
       });
       call.on('iceStateChanged', state => {
@@ -148,11 +158,21 @@ export default function LiveViewerScreen() {
     );
   }
 
+  // A plain native onClick, not TouchableOpacity's onPress — Safari/Chrome's
+  // mobile autoplay policy only allows play() when it's called synchronously
+  // inside a real browser click event, and TouchableOpacity's gesture
+  // responder system adds enough indirection that the browser no longer
+  // treats the resulting play() call as directly gesture-triggered.
   const handleTapToPlay = () => {
+    if (!videoRef.current) return;
+    videoRef.current.muted = muted;
     videoRef.current
-      ?.play()
-      .then(() => setNeedsTap(false))
-      .catch(() => {});
+      .play()
+      .then(() => {
+        setNeedsTap(false);
+        setPlayError('');
+      })
+      .catch((err: DOMException) => setPlayError(`${err.name}: ${err.message}`));
   };
 
   return (
@@ -176,9 +196,27 @@ export default function LiveViewerScreen() {
       />
 
       {needsTap && (
-        <TouchableOpacity style={styles.tapToPlayOverlay} onPress={handleTapToPlay} testID="live-viewer-tap-to-play">
+        <div
+          onClick={handleTapToPlay}
+          data-testid="live-viewer-tap-to-play"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            cursor: 'pointer',
+          }}
+        >
           <Text style={styles.tapToPlayText}>▶ Dotknij, aby odtworzyć</Text>
-        </TouchableOpacity>
+          {playError ? <Text style={styles.tapToPlayError}>{playError}</Text> : null}
+        </div>
       )}
 
       <SafeAreaView style={styles.topBar} edges={['top']}>
@@ -307,12 +345,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  tapToPlayOverlay: {
-    ...StyleSheet.absoluteFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
   tapToPlayText: {
     color: colors.text,
     fontSize: 16,
@@ -321,5 +353,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 24,
+  },
+  tapToPlayError: {
+    color: colors.textMuted,
+    fontSize: 11,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
   },
 });
