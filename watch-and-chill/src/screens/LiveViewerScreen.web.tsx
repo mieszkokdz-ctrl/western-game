@@ -24,6 +24,7 @@ export default function LiveViewerScreen() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const peerRef = useRef<Peer | null>(null);
   const callRef = useRef<MediaConnection | null>(null);
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const liveId = useMemo(() => getLiveId(), []);
   const [status, setStatus] = useState<Status>('connecting');
   const [retryCount, setRetryCount] = useState(0);
@@ -47,9 +48,9 @@ export default function LiveViewerScreen() {
     const peer = new Peer({ config: { iceServers: LIVE_ICE_SERVERS } });
     peerRef.current = peer;
 
-    // Cleared as soon as the remote stream actually attaches, so this only
-    // ever fires when the connection genuinely never came through.
-    const timeout = setTimeout(() => {
+    // Cleared once video is actually playing (see handleVideoPlaying), so
+    // this only ever fires when the connection genuinely never came through.
+    connectTimeoutRef.current = setTimeout(() => {
       if (!cancelled) setStatus('not-found');
     }, CONNECT_TIMEOUT_MS);
 
@@ -69,12 +70,13 @@ export default function LiveViewerScreen() {
         constraints: { offerToReceiveAudio: true, offerToReceiveVideo: true },
       } as Parameters<Peer['call']>[2]);
       callRef.current = call;
-      // 'stream' only means signaling finished and a track was negotiated —
-      // it fires before the underlying connection is actually up, so relying
-      // on it alone can show a "LIVE" badge over a frame that never arrives
-      // if the peer-to-peer/TURN path never truly connects. Waiting for
-      // iceStateChanged to report connected/completed means "watching" only
-      // ever means media is genuinely flowing.
+      // "Watching" is only ever declared from the video element's own
+      // `playing` event (see the <video> below) — that's the one signal
+      // that's actually true across every browser: frames are rendering.
+      // WebRTC's iceConnectionState is a tempting alternative but not a
+      // reliable proxy for it — some browsers/TURN paths never land
+      // precisely on "connected"/"completed" even while media is flowing
+      // fine, which was blocking the UI from ever leaving "Łączenie...".
       call.on('stream', remoteStream => {
         if (cancelled || !videoRef.current) return;
         // Force the property directly rather than relying only on the JSX
@@ -107,14 +109,10 @@ export default function LiveViewerScreen() {
         };
         setTimeout(() => attemptPlay(false), 500);
       });
+      // Still useful as a fast, unambiguous failure signal even though
+      // "connected" isn't used to drive the UI anymore.
       call.on('iceStateChanged', state => {
-        if (cancelled) return;
-        if (state === 'connected' || state === 'completed') {
-          clearTimeout(timeout);
-          setStatus('watching');
-        } else if (state === 'failed') {
-          setStatus('not-found');
-        }
+        if (!cancelled && state === 'failed') setStatus('not-found');
       });
       call.on('close', () => {
         if (!cancelled) setStatus('ended');
@@ -135,7 +133,7 @@ export default function LiveViewerScreen() {
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
+      if (connectTimeoutRef.current != null) clearTimeout(connectTimeoutRef.current);
       callRef.current?.close();
       peer.destroy();
     };
@@ -189,6 +187,14 @@ export default function LiveViewerScreen() {
       .catch((err: DOMException) => setPlayError(`${err.name}: ${err.message}`));
   };
 
+  // The one ground-truth signal that video is actually visible: the browser
+  // itself fires this only once real frames are being rendered.
+  const handleVideoPlaying = () => {
+    if (connectTimeoutRef.current != null) clearTimeout(connectTimeoutRef.current);
+    setNeedsTap(false);
+    setStatus('watching');
+  };
+
   return (
     <View style={styles.container}>
       <video
@@ -196,6 +202,7 @@ export default function LiveViewerScreen() {
         autoPlay
         playsInline
         muted={muted}
+        onPlaying={handleVideoPlaying}
         onClick={needsTap ? handleTapToPlay : undefined}
         style={{
           position: 'absolute',

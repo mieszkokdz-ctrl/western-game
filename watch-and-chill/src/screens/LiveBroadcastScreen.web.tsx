@@ -70,20 +70,13 @@ export default function LiveBroadcastScreen() {
         peer.on('call', call => {
           if (!streamRef.current) return;
           call.answer(streamRef.current);
-          // Counted once the connection is actually up, not just once it's
-          // answered — a call can be answered and still never establish a
-          // working media path (e.g. blocked by the viewer's network), and
-          // counting it anyway would show viewers who can't actually see
-          // anything, contradicting the app's real-numbers-only principle.
-          call.on('iceStateChanged', state => {
-            if (state === 'connected' || state === 'completed') {
-              activeCallsRef.current.add(call);
-              setViewerCount(activeCallsRef.current.size);
-            } else if (state === 'failed' || state === 'disconnected') {
-              activeCallsRef.current.delete(call);
-              setViewerCount(activeCallsRef.current.size);
-            }
-          });
+          // Counted as soon as the call is answered. Gating this on
+          // iceConnectionState reaching "connected"/"completed" sounds more
+          // accurate, but that event doesn't reliably land on those exact
+          // states on every browser/TURN path even once media is genuinely
+          // flowing — it was leaving the count stuck at 0 for real viewers.
+          activeCallsRef.current.add(call);
+          setViewerCount(activeCallsRef.current.size);
           call.on('close', () => {
             activeCallsRef.current.delete(call);
             setViewerCount(activeCallsRef.current.size);
