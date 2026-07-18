@@ -1,11 +1,14 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { FaceLandmarker } from '@mediapipe/tasks-vision';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RecordingTimerRing from '../components/RecordingTimerRing';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { drawFaceEffect, FACE_EFFECTS } from '../utils/faceEffects';
+import { getFaceLandmarker } from '../utils/faceLandmarker';
 import { VIDEO_FILTERS } from '../utils/videoFilters';
 
 type Facing = 'user' | 'environment';
@@ -28,26 +31,48 @@ export default function CreateScreen() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const rafRef = useRef<number | null>(null);
-  const filterCssRef = useRef('none');
+  const activeEffectIdRef = useRef(VIDEO_FILTERS[0].id);
+  const faceLandmarkerRef = useRef<FaceLandmarker | null>(null);
 
   const [facing, setFacing] = useState<Facing>('user');
   const [isRecording, setIsRecording] = useState(false);
   const [permissionState, setPermissionState] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [filterId, setFilterId] = useState(VIDEO_FILTERS[0].id);
+  const [activeEffectId, setActiveEffectId] = useState(VIDEO_FILTERS[0].id);
+  const [faceEffectsLoading, setFaceEffectsLoading] = useState(false);
+  const [faceEffectsError, setFaceEffectsError] = useState(false);
   const recordingStartRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    filterCssRef.current = VIDEO_FILTERS.find(f => f.id === filterId)?.css ?? 'none';
-  }, [filterId]);
+    activeEffectIdRef.current = activeEffectId;
+  }, [activeEffectId]);
+
+  const handleSelectEffect = async (id: string) => {
+    const isFaceEffect = FACE_EFFECTS.some(f => f.id === id);
+    if (isFaceEffect && !faceLandmarkerRef.current) {
+      setFaceEffectsLoading(true);
+      try {
+        faceLandmarkerRef.current = await getFaceLandmarker();
+        setFaceEffectsError(false);
+      } catch (err) {
+        console.warn('Failed to load face effects', err);
+        setFaceEffectsLoading(false);
+        setFaceEffectsError(true);
+        return;
+      }
+      setFaceEffectsLoading(false);
+    }
+    setActiveEffectId(id);
+  };
 
   // Draws the live camera feed onto a canvas every frame, with the chosen
-  // filter baked into the pixels — a CSS filter on the <video> preview would
-  // only be cosmetic and wouldn't show up in the actual recording, since
-  // MediaRecorder captures the raw camera stream, not the rendered DOM. This
-  // canvas becomes both the visible preview and the source for recording, so
-  // what's seen while filming is exactly what gets saved.
+  // color filter or face-tracking effect baked into the pixels — a CSS
+  // filter on the <video> preview would only be cosmetic and wouldn't show
+  // up in the actual recording, since MediaRecorder captures the raw camera
+  // stream, not the rendered DOM. This canvas becomes both the visible
+  // preview and the source for recording, so what's seen while filming is
+  // exactly what gets saved.
   useEffect(() => {
     const draw = () => {
       const video = videoRef.current;
@@ -59,8 +84,15 @@ export default function CreateScreen() {
         }
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.filter = filterCssRef.current;
+          const colorFilter = VIDEO_FILTERS.find(f => f.id === activeEffectIdRef.current);
+          const faceEffect = FACE_EFFECTS.find(f => f.id === activeEffectIdRef.current);
+          ctx.filter = colorFilter?.css ?? 'none';
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          if (faceEffect && faceLandmarkerRef.current) {
+            ctx.filter = 'none';
+            const result = faceLandmarkerRef.current.detectForVideo(video, performance.now());
+            drawFaceEffect(ctx, result, faceEffect.id, canvas.width, canvas.height);
+          }
         }
       }
       rafRef.current = requestAnimationFrame(draw);
@@ -234,16 +266,34 @@ export default function CreateScreen() {
             {VIDEO_FILTERS.map(filter => (
               <TouchableOpacity
                 key={filter.id}
-                style={[styles.filterChip, filterId === filter.id && styles.filterChipActive]}
-                onPress={() => setFilterId(filter.id)}
+                style={[styles.filterChip, activeEffectId === filter.id && styles.filterChipActive]}
+                onPress={() => handleSelectEffect(filter.id)}
                 testID={`filter-${filter.id}`}
               >
-                <Text style={[styles.filterChipText, filterId === filter.id && styles.filterChipTextActive]}>
+                <Text style={[styles.filterChipText, activeEffectId === filter.id && styles.filterChipTextActive]}>
                   {filter.label}
                 </Text>
               </TouchableOpacity>
             ))}
+            {FACE_EFFECTS.map(effect => (
+              <TouchableOpacity
+                key={effect.id}
+                style={[styles.filterChip, activeEffectId === effect.id && styles.filterChipActive]}
+                onPress={() => handleSelectEffect(effect.id)}
+                testID={`filter-${effect.id}`}
+              >
+                <Text style={[styles.filterChipText, activeEffectId === effect.id && styles.filterChipTextActive]}>
+                  {effect.icon} {effect.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
+        )}
+        {faceEffectsLoading && (
+          <Text style={styles.effectStatusText}>Ładowanie filtra twarzy...</Text>
+        )}
+        {faceEffectsError && (
+          <Text style={styles.effectStatusText}>Nie udało się załadować filtra twarzy. Spróbuj ponownie.</Text>
         )}
         <Text style={styles.hint}>
           {isRecording ? 'Nagrywanie... dotknij, aby zakończyć' : 'Dotknij, aby nagrać (max 60s)'}
@@ -370,6 +420,12 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: colors.text,
+  },
+  effectStatusText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   recordButtonWrap: {
     alignItems: 'center',
