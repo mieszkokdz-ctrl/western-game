@@ -1,9 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Peer, { type MediaConnection } from 'peerjs';
+import Peer, { type DataConnection, type MediaConnection } from 'peerjs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LiveChatOverlay, { type LiveChatMessage } from '../components/LiveChatOverlay';
+import { useUserProfile } from '../context/UserProfileContext';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { LIVE_ICE_SERVERS } from '../utils/liveRtcConfig';
@@ -13,6 +15,11 @@ type Status = 'connecting' | 'watching' | 'ended' | 'not-found';
 // Generous enough to allow a TURN relay negotiation to complete on a slow
 // mobile connection, not just a fast direct STUN path.
 const CONNECT_TIMEOUT_MS = 20000;
+const MAX_CHAT_MESSAGES = 200;
+
+function makeMessageId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export function getLiveId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -21,13 +28,16 @@ export function getLiveId(): string | null {
 
 export default function LiveViewerScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { username } = useUserProfile();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const peerRef = useRef<Peer | null>(null);
   const callRef = useRef<MediaConnection | null>(null);
+  const dataConnRef = useRef<DataConnection | null>(null);
   const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const liveId = useMemo(() => getLiveId(), []);
   const [status, setStatus] = useState<Status>('connecting');
   const [retryCount, setRetryCount] = useState(0);
+  const [messages, setMessages] = useState<LiveChatMessage[]>([]);
   // Mobile browsers block autoplay of unmuted media unless play() is called
   // directly inside a user tap — ours runs later, after the WebRTC handshake
   // completes, so it gets silently rejected and the video just stays paused
@@ -70,6 +80,15 @@ export default function LiveViewerScreen() {
         constraints: { offerToReceiveAudio: true, offerToReceiveVideo: true },
       } as Parameters<Peer['call']>[2]);
       callRef.current = call;
+
+      // Separate data connection to the broadcaster for chat — PeerJS
+      // buffers anything sent before it finishes opening, so messages typed
+      // early aren't lost.
+      const dataConn = peer.connect(liveId);
+      dataConnRef.current = dataConn;
+      dataConn.on('data', data => {
+        if (!cancelled) setMessages(prev => [...prev, data as LiveChatMessage].slice(-MAX_CHAT_MESSAGES));
+      });
       // "Watching" is only ever declared from the video element's own
       // `playing` event (see the <video> below) — that's the one signal
       // that's actually true across every browser: frames are rendering.
@@ -135,12 +154,19 @@ export default function LiveViewerScreen() {
       cancelled = true;
       if (connectTimeoutRef.current != null) clearTimeout(connectTimeoutRef.current);
       callRef.current?.close();
+      dataConnRef.current?.close();
       peer.destroy();
     };
   }, [liveId, retryCount]);
 
   const goHome = () => {
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
+  };
+
+  const handleSendChat = (text: string) => {
+    const msg: LiveChatMessage = { id: makeMessageId(), author: username, text };
+    setMessages(prev => [...prev, msg].slice(-MAX_CHAT_MESSAGES));
+    dataConnRef.current?.send(msg);
   };
 
   if (status === 'not-found' || status === 'ended') {
@@ -266,6 +292,10 @@ export default function LiveViewerScreen() {
           <View style={{ width: 40 }} />
         )}
       </SafeAreaView>
+
+      <SafeAreaView style={styles.chatArea} edges={['bottom']} pointerEvents="box-none">
+        <LiveChatOverlay messages={messages} onSend={handleSendChat} />
+      </SafeAreaView>
     </View>
   );
 }
@@ -382,5 +412,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
+  },
+  chatArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
 });

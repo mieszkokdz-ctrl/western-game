@@ -1,9 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import Peer, { type MediaConnection } from 'peerjs';
+import Peer, { type DataConnection, type MediaConnection } from 'peerjs';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LiveChatOverlay, { type LiveChatMessage } from '../components/LiveChatOverlay';
 import { useUserProfile } from '../context/UserProfileContext';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -11,8 +12,15 @@ import { LIVE_ICE_SERVERS } from '../utils/liveRtcConfig';
 
 type Status = 'connecting' | 'live' | 'ended' | 'error';
 
+// Keeps memory/render cost bounded on a long-running stream.
+const MAX_CHAT_MESSAGES = 200;
+
 function makeLiveId(): string {
   return `wc-live-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function makeMessageId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function formatElapsed(seconds: number): string {
@@ -29,6 +37,7 @@ export default function LiveBroadcastScreen() {
   const peerRef = useRef<Peer | null>(null);
   const startedAtRef = useRef(0);
   const activeCallsRef = useRef<Set<MediaConnection>>(new Set());
+  const dataConnectionsRef = useRef<Map<string, DataConnection>>(new Map());
 
   const [status, setStatus] = useState<Status>('connecting');
   const [liveId, setLiveId] = useState('');
@@ -36,6 +45,20 @@ export default function LiveBroadcastScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [linkCopied, setLinkCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [messages, setMessages] = useState<LiveChatMessage[]>([]);
+
+  const addMessage = (msg: LiveChatMessage) => {
+    setMessages(prev => [...prev, msg].slice(-MAX_CHAT_MESSAGES));
+  };
+
+  // Every viewer only has a direct data connection to the broadcaster, not
+  // to each other, so a message from one viewer has to be relayed through
+  // here to reach everyone else watching.
+  const relayMessage = (msg: LiveChatMessage, excludePeerId?: string) => {
+    dataConnectionsRef.current.forEach((conn, peerId) => {
+      if (peerId !== excludePeerId && conn.open) conn.send(msg);
+    });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +106,22 @@ export default function LiveBroadcastScreen() {
           });
         });
 
+        // Each viewer opens a data connection (separate from their media
+        // call) to send chat messages. The broadcaster is the only peer
+        // everyone is directly connected to, so it also relays each
+        // incoming message out to every other connected viewer.
+        peer.on('connection', dataConn => {
+          dataConnectionsRef.current.set(dataConn.peer, dataConn);
+          dataConn.on('data', data => {
+            const msg = data as LiveChatMessage;
+            addMessage(msg);
+            relayMessage(msg, dataConn.peer);
+          });
+          dataConn.on('close', () => {
+            dataConnectionsRef.current.delete(dataConn.peer);
+          });
+        });
+
         // The connection to the signaling server can drop on its own — e.g.
         // the phone briefly loses signal, or the browser throttles the tab
         // while the user switches apps to send the share link. Without this,
@@ -116,6 +155,8 @@ export default function LiveBroadcastScreen() {
       streamRef.current?.getTracks().forEach(track => track.stop());
       activeCallsRef.current.forEach(call => call.close());
       activeCallsRef.current.clear();
+      dataConnectionsRef.current.forEach(conn => conn.close());
+      dataConnectionsRef.current.clear();
       peerRef.current?.destroy();
     };
   }, []);
@@ -132,9 +173,17 @@ export default function LiveBroadcastScreen() {
     streamRef.current?.getTracks().forEach(track => track.stop());
     activeCallsRef.current.forEach(call => call.close());
     activeCallsRef.current.clear();
+    dataConnectionsRef.current.forEach(conn => conn.close());
+    dataConnectionsRef.current.clear();
     peerRef.current?.destroy();
     setStatus('ended');
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
+  };
+
+  const handleSendChat = (text: string) => {
+    const msg: LiveChatMessage = { id: makeMessageId(), author: username, text };
+    addMessage(msg);
+    relayMessage(msg);
   };
 
   const handleShare = async () => {
@@ -220,7 +269,13 @@ export default function LiveBroadcastScreen() {
           </View>
         )}
 
-        <View style={{ width: 40 }} />
+        {status === 'live' ? (
+          <TouchableOpacity style={styles.iconButton} onPress={handleShare} testID="live-share-button">
+            <Text style={styles.iconButtonText}>↗️</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </SafeAreaView>
 
       {linkCopied && (
@@ -229,26 +284,11 @@ export default function LiveBroadcastScreen() {
         </View>
       )}
 
-      <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
-        <Text style={styles.hint}>
-          {status === 'live'
-            ? 'Udostępnij link, aby znajomi mogli oglądać na żywo'
-            : 'Trwa łączenie z transmisją na żywo...'}
-        </Text>
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.shareButton, status !== 'live' && styles.disabledButton]}
-            onPress={handleShare}
-            disabled={status !== 'live'}
-            testID="live-share-button"
-          >
-            <Text style={styles.shareButtonText}>↗️ Udostępnij</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.endButton} onPress={handleEnd} testID="live-end-button">
-            <Text style={styles.endButtonText}>Zakończ</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      {status === 'live' && (
+        <SafeAreaView style={styles.chatArea} edges={['bottom']} pointerEvents="box-none">
+          <LiveChatOverlay messages={messages} onSend={handleSendChat} />
+        </SafeAreaView>
+      )}
     </View>
   );
 }
@@ -367,53 +407,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  bottomBar: {
+  chatArea: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  hint: {
-    color: colors.text,
-    fontSize: 13,
-    marginBottom: 14,
-    textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.6)',
-    textShadowRadius: 4,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  shareButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 24,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  shareButtonText: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  endButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  endButtonText: {
-    color: colors.text,
-    fontWeight: '700',
-    fontSize: 14,
   },
 });
