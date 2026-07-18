@@ -65,6 +65,10 @@ export default function FeedItem({ title, active, height }: Props) {
       player.pause();
       setPaused(true);
     } else {
+      // Videos always restart from the beginning, not just when swiping to
+      // them — resuming a manually-paused video also starts over rather
+      // than continuing from where it was paused.
+      player.currentTime = 0;
       player.play();
       setPaused(false);
     }
