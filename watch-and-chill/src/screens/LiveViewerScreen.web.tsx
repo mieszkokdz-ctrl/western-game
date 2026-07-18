@@ -27,6 +27,13 @@ export default function LiveViewerScreen() {
   const liveId = useMemo(() => getLiveId(), []);
   const [status, setStatus] = useState<Status>('connecting');
   const [retryCount, setRetryCount] = useState(0);
+  // Mobile browsers block autoplay of unmuted media unless play() is called
+  // directly inside a user tap — ours runs later, after the WebRTC handshake
+  // completes, so it gets silently rejected and the video just stays paused
+  // on a black frame. Starting muted makes autoplay reliable; viewers can
+  // unmute with a tap afterwards (itself a real user gesture, so it works).
+  const [muted, setMuted] = useState(true);
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
     if (!liveId) {
@@ -61,13 +68,28 @@ export default function LiveViewerScreen() {
         constraints: { offerToReceiveAudio: true, offerToReceiveVideo: true },
       } as Parameters<Peer['call']>[2]);
       callRef.current = call;
+      // 'stream' only means signaling finished and a track was negotiated —
+      // it fires before the underlying connection is actually up, so relying
+      // on it alone can show a "LIVE" badge over a frame that never arrives
+      // if the peer-to-peer/TURN path never truly connects. Waiting for
+      // iceStateChanged to report connected/completed means "watching" only
+      // ever means media is genuinely flowing.
       call.on('stream', remoteStream => {
+        if (cancelled || !videoRef.current) return;
+        videoRef.current.srcObject = remoteStream;
+        videoRef.current.play().catch(() => {
+          // Extremely unlikely once muted, but if it still gets blocked,
+          // needsTap lets the user start it with a direct tap instead.
+          if (!cancelled) setNeedsTap(true);
+        });
+      });
+      call.on('iceStateChanged', state => {
         if (cancelled) return;
-        clearTimeout(timeout);
-        setStatus('watching');
-        if (videoRef.current) {
-          videoRef.current.srcObject = remoteStream;
-          videoRef.current.play().catch(() => {});
+        if (state === 'connected' || state === 'completed') {
+          clearTimeout(timeout);
+          setStatus('watching');
+        } else if (state === 'failed') {
+          setStatus('not-found');
         }
       });
       call.on('close', () => {
@@ -126,12 +148,21 @@ export default function LiveViewerScreen() {
     );
   }
 
+  const handleTapToPlay = () => {
+    videoRef.current
+      ?.play()
+      .then(() => setNeedsTap(false))
+      .catch(() => {});
+  };
+
   return (
     <View style={styles.container}>
       <video
         ref={videoRef}
         autoPlay
         playsInline
+        muted={muted}
+        onClick={needsTap ? handleTapToPlay : undefined}
         style={{
           position: 'absolute',
           top: 0,
@@ -143,6 +174,12 @@ export default function LiveViewerScreen() {
           objectFit: 'cover',
         }}
       />
+
+      {needsTap && (
+        <TouchableOpacity style={styles.tapToPlayOverlay} onPress={handleTapToPlay} testID="live-viewer-tap-to-play">
+          <Text style={styles.tapToPlayText}>▶ Dotknij, aby odtworzyć</Text>
+        </TouchableOpacity>
+      )}
 
       <SafeAreaView style={styles.topBar} edges={['top']}>
         <TouchableOpacity style={styles.iconButton} onPress={goHome} testID="live-viewer-close-button">
@@ -158,7 +195,17 @@ export default function LiveViewerScreen() {
             <Text style={styles.connectingText}>Łączenie...</Text>
           </View>
         )}
-        <View style={{ width: 40 }} />
+        {status === 'watching' ? (
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setMuted(m => !m)}
+            testID="live-viewer-mute-button"
+          >
+            <Text style={styles.iconButtonText}>{muted ? '🔇' : '🔊'}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </SafeAreaView>
     </View>
   );
@@ -259,5 +306,20 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 13,
     fontWeight: '600',
+  },
+  tapToPlayOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  tapToPlayText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '700',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
   },
 });
