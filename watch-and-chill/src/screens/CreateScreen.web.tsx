@@ -1,11 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RecordingTimerRing from '../components/RecordingTimerRing';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { VIDEO_FILTERS } from '../utils/videoFilters';
 
 type Facing = 'user' | 'environment';
 
@@ -22,16 +23,53 @@ function pickMimeType(): string | undefined {
 export default function CreateScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const filterCssRef = useRef('none');
 
   const [facing, setFacing] = useState<Facing>('user');
   const [isRecording, setIsRecording] = useState(false);
   const [permissionState, setPermissionState] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [filterId, setFilterId] = useState(VIDEO_FILTERS[0].id);
   const recordingStartRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    filterCssRef.current = VIDEO_FILTERS.find(f => f.id === filterId)?.css ?? 'none';
+  }, [filterId]);
+
+  // Draws the live camera feed onto a canvas every frame, with the chosen
+  // filter baked into the pixels — a CSS filter on the <video> preview would
+  // only be cosmetic and wouldn't show up in the actual recording, since
+  // MediaRecorder captures the raw camera stream, not the rendered DOM. This
+  // canvas becomes both the visible preview and the source for recording, so
+  // what's seen while filming is exactly what gets saved.
+  useEffect(() => {
+    const draw = () => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (video && canvas && video.videoWidth > 0) {
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.filter = filterCssRef.current;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
+      }
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    rafRef.current = requestAnimationFrame(draw);
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const stopTimer = () => {
     if (timerRef.current != null) {
@@ -78,21 +116,30 @@ export default function CreateScreen() {
   }, [facing]);
 
   const handleRecordPress = () => {
-    if (!streamRef.current) return;
+    if (!streamRef.current || !canvasRef.current) return;
 
     if (isRecording) {
       recorderRef.current?.stop();
       return;
     }
 
+    // Record the filtered canvas (video) combined with the real microphone
+    // audio (canvas.captureStream carries no audio of its own).
+    const canvasStream = canvasRef.current.captureStream(30);
+    const recordedStream = new MediaStream([
+      ...canvasStream.getVideoTracks(),
+      ...streamRef.current.getAudioTracks(),
+    ]);
+
     chunksRef.current = [];
     const mimeType = pickMimeType();
-    const recorder = new MediaRecorder(streamRef.current, mimeType ? { mimeType } : undefined);
+    const recorder = new MediaRecorder(recordedStream, mimeType ? { mimeType } : undefined);
     recorder.ondataavailable = event => {
       if (event.data.size > 0) chunksRef.current.push(event.data);
     };
     recorder.onstop = () => {
       stopTimer();
+      canvasStream.getTracks().forEach(track => track.stop());
       const blob = new Blob(chunksRef.current, { type: mimeType ?? 'video/webm' });
       const uri = URL.createObjectURL(blob);
       setIsRecording(false);
@@ -139,11 +186,17 @@ export default function CreateScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Hidden — only used as the live frame source drawn onto the canvas
+          below, which is the actual visible preview and recording source. */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }}
+      />
+      <canvas
+        ref={canvasRef}
         style={{
           position: 'absolute',
           top: 0,
@@ -171,6 +224,27 @@ export default function CreateScreen() {
       </SafeAreaView>
 
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
+        {!isRecording && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterList}
+            contentContainerStyle={styles.filterListContent}
+          >
+            {VIDEO_FILTERS.map(filter => (
+              <TouchableOpacity
+                key={filter.id}
+                style={[styles.filterChip, filterId === filter.id && styles.filterChipActive]}
+                onPress={() => setFilterId(filter.id)}
+                testID={`filter-${filter.id}`}
+              >
+                <Text style={[styles.filterChipText, filterId === filter.id && styles.filterChipTextActive]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
         <Text style={styles.hint}>
           {isRecording ? 'Nagrywanie... dotknij, aby zakończyć' : 'Dotknij, aby nagrać (max 60s)'}
         </Text>
@@ -268,6 +342,34 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowRadius: 4,
+  },
+  filterList: {
+    maxWidth: '100%',
+    marginBottom: 14,
+  },
+  filterListContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterChip: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.text,
+  },
+  filterChipText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterChipTextActive: {
+    color: colors.text,
   },
   recordButtonWrap: {
     alignItems: 'center',
