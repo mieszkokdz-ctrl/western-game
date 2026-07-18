@@ -6,6 +6,7 @@ import CreatorProfileSheet from './CreatorProfileSheet';
 import ModerationSheet from './ModerationSheet';
 import { useComments } from '../context/CommentsContext';
 import { useLikes } from '../context/LikesContext';
+import { useShares } from '../context/SharesContext';
 import type { Title } from '../data/catalog';
 import { colors } from '../theme/colors';
 
@@ -26,6 +27,8 @@ export default function FeedItem({ title, active, height }: Props) {
   const liked = isLiked(title.id);
   const { getComments } = useComments();
   const commentCount = getComments(title.id).length;
+  const { getShareCount, incrementShare } = useShares();
+  const shareCount = title.shares + getShareCount(title.id);
   const [moderationVisible, setModerationVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [creatorProfileVisible, setCreatorProfileVisible] = useState(false);
@@ -76,14 +79,16 @@ export default function FeedItem({ title, active, height }: Props) {
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        incrementShare(title.id);
       } catch {
-        // User cancelled the share sheet — nothing to do.
+        // User cancelled the share sheet — don't count it.
       }
       return;
     }
     if (navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(shareData.url);
+        incrementShare(title.id);
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 1800);
       } catch {
@@ -145,7 +150,7 @@ export default function FeedItem({ title, active, height }: Props) {
         <TouchableWithoutFeedback onPress={handleShare} testID="share-button">
           <View style={styles.railItem}>
             <Text style={styles.railIcon}>↗️</Text>
-            <Text style={styles.railLabel}>{formatCount(title.shares)}</Text>
+            <Text style={styles.railLabel}>{formatCount(shareCount)}</Text>
           </View>
         </TouchableWithoutFeedback>
         <TouchableWithoutFeedback onPress={() => setModerationVisible(true)} testID="moderation-menu-button">

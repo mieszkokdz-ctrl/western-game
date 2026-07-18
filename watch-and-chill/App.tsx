@@ -5,6 +5,7 @@ import { CommentsProvider } from './src/context/CommentsContext';
 import { ConsentProvider } from './src/context/ConsentContext';
 import { LikesProvider } from './src/context/LikesContext';
 import { ReportsProvider } from './src/context/ReportsContext';
+import { SharesProvider } from './src/context/SharesContext';
 import { UserProfileProvider } from './src/context/UserProfileContext';
 import { UserVideosProvider } from './src/context/UserVideosContext';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -19,8 +20,10 @@ export default function App() {
               <BlockedUsersProvider>
                 <ReportsProvider>
                   <CommentsProvider>
-                    <StatusBar style="light" />
-                    <RootNavigator />
+                    <SharesProvider>
+                      <StatusBar style="light" />
+                      <RootNavigator />
+                    </SharesProvider>
                   </CommentsProvider>
                 </ReportsProvider>
               </BlockedUsersProvider>
