@@ -76,19 +76,21 @@ export default function FeedItem({ title, active, height }: Props) {
       text: `${title.author}: ${title.caption}`,
       url: window.location.href,
     };
+    // Counted as soon as the user opens the share sheet / copies the link,
+    // rather than waiting on confirmation that it actually completed —
+    // browsers are inconsistent about resolving that promise reliably.
+    incrementShare(title.id);
     if (navigator.share) {
       try {
         await navigator.share(shareData);
-        incrementShare(title.id);
       } catch {
-        // User cancelled the share sheet — don't count it.
+        // User cancelled — the share was still counted, matching how most apps do this.
       }
       return;
     }
     if (navigator.clipboard) {
       try {
         await navigator.clipboard.writeText(shareData.url);
-        incrementShare(title.id);
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 1800);
       } catch {
