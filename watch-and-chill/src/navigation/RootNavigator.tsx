@@ -5,8 +5,11 @@ import { useConsent } from '../context/ConsentContext';
 import ConsentScreen from '../screens/ConsentScreen';
 import CreateScreen from '../screens/CreateScreen';
 import FeedModalScreen from '../screens/FeedModalScreen';
+import LiveBroadcastScreen from '../screens/LiveBroadcastScreen';
+import LiveViewerScreen, { getLiveId } from '../screens/LiveViewerScreen';
 import PostScreen from '../screens/PostScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
+import RecordChoiceScreen from '../screens/RecordChoiceScreen';
 import SharedVideoScreen, { getSharedVideoId } from '../screens/SharedVideoScreen';
 import TermsScreen from '../screens/TermsScreen';
 import { colors } from '../theme/colors';
@@ -36,6 +39,7 @@ const legalScreenOptions = {
 
 function getInitialRouteName(hasAccepted: boolean): keyof RootStackParamList {
   if (!hasAccepted) return 'Consent';
+  if (Platform.OS === 'web' && getLiveId()) return 'LiveViewer';
   if (Platform.OS === 'web' && getSharedVideoId()) return 'SharedVideo';
   return 'MainTabs';
 }
@@ -53,8 +57,15 @@ export default function RootNavigator() {
         <Stack.Screen name="Consent" component={ConsentScreen} />
         <Stack.Screen name="MainTabs" component={MainTabs} />
         <Stack.Screen name="SharedVideo" component={SharedVideoScreen} />
+        <Stack.Screen name="LiveViewer" component={LiveViewerScreen} />
         <Stack.Screen name="Feed" component={FeedModalScreen} options={{ animation: 'fade' }} />
+        <Stack.Screen name="RecordChoice" component={RecordChoiceScreen} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="Create" component={CreateScreen} options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen
+          name="LiveBroadcast"
+          component={LiveBroadcastScreen}
+          options={{ presentation: 'fullScreenModal' }}
+        />
         <Stack.Screen name="Post" component={PostScreen} options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="Terms" component={TermsScreen} options={{ ...legalScreenOptions, title: 'Regulamin' }} />
         <Stack.Screen

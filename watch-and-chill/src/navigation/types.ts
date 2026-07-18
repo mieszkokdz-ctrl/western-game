@@ -13,7 +13,10 @@ export type RootStackParamList = {
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   Feed: { initialId: string };
   SharedVideo: undefined;
+  RecordChoice: undefined;
   Create: undefined;
+  LiveBroadcast: undefined;
+  LiveViewer: undefined;
   Post: { uri: string };
   Terms: undefined;
   Privacy: undefined;

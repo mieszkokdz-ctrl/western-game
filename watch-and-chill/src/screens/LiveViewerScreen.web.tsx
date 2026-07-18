@@ -1,0 +1,222 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Peer, { type MediaConnection } from 'peerjs';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
+
+type Status = 'connecting' | 'watching' | 'ended' | 'not-found';
+
+const CONNECT_TIMEOUT_MS = 15000;
+
+export function getLiveId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get('live');
+}
+
+export default function LiveViewerScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const peerRef = useRef<Peer | null>(null);
+  const callRef = useRef<MediaConnection | null>(null);
+  const liveId = useMemo(() => getLiveId(), []);
+  const [status, setStatus] = useState<Status>('connecting');
+
+  useEffect(() => {
+    if (!liveId) {
+      setStatus('not-found');
+      return;
+    }
+
+    let cancelled = false;
+    const peer = new Peer();
+    peerRef.current = peer;
+
+    // Cleared as soon as the remote stream actually attaches, so this only
+    // ever fires when the connection genuinely never came through.
+    const timeout = setTimeout(() => {
+      if (!cancelled) setStatus('not-found');
+    }, CONNECT_TIMEOUT_MS);
+
+    peer.on('open', () => {
+      if (cancelled) return;
+      // A receive-only call still needs a MediaStream argument to negotiate —
+      // an empty one (no tracks) works fine since nothing is actually sent.
+      const call = peer.call(liveId, new MediaStream());
+      callRef.current = call;
+      call.on('stream', remoteStream => {
+        if (cancelled) return;
+        clearTimeout(timeout);
+        setStatus('watching');
+        if (videoRef.current) {
+          videoRef.current.srcObject = remoteStream;
+          videoRef.current.play().catch(() => {});
+        }
+      });
+      call.on('close', () => {
+        if (!cancelled) setStatus('ended');
+      });
+      call.on('error', () => {
+        if (!cancelled) setStatus('not-found');
+      });
+    });
+
+    peer.on('error', err => {
+      console.warn('Peer error', err);
+      if (!cancelled) setStatus('not-found');
+    });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      callRef.current?.close();
+      peer.destroy();
+    };
+  }, [liveId]);
+
+  const goHome = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
+  };
+
+  if (status === 'not-found' || status === 'ended') {
+    return (
+      <View style={styles.messageContainer}>
+        <Text style={styles.messageTitle}>
+          {status === 'ended' ? 'Transmisja się zakończyła' : 'Nie można znaleźć tej transmisji'}
+        </Text>
+        <Text style={styles.messageText}>
+          {status === 'ended'
+            ? 'Nadawca zakończył transmisję na żywo.'
+            : 'Ten link do transmisji live jest nieprawidłowy albo transmisja już się skończyła.'}
+        </Text>
+        <TouchableOpacity style={styles.homeButton} onPress={goHome} testID="live-viewer-home-button">
+          <Text style={styles.homeButtonText}>Przejdź do Watch&Chill</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+
+      <SafeAreaView style={styles.topBar} edges={['top']}>
+        <TouchableOpacity style={styles.iconButton} onPress={goHome} testID="live-viewer-close-button">
+          <Text style={styles.iconButtonText}>✕</Text>
+        </TouchableOpacity>
+        {status === 'watching' && (
+          <View style={styles.liveBadge}>
+            <Text style={styles.liveBadgeText}>LIVE</Text>
+          </View>
+        )}
+        {status === 'connecting' && (
+          <View style={styles.connectingBadge}>
+            <Text style={styles.connectingText}>Łączenie...</Text>
+          </View>
+        )}
+        <View style={{ width: 40 }} />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  messageContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  messageTitle: {
+    color: colors.text,
+    fontSize: 22,
+    fontWeight: '800',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  messageText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 28,
+  },
+  homeButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+  },
+  homeButtonText: {
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 4,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconButtonText: {
+    color: colors.text,
+    fontSize: 18,
+  },
+  liveBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  liveBadgeText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  connectingBadge: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  connectingText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+});

@@ -1,11 +1,22 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useConsent } from '../context/ConsentContext';
 import type { RootStackParamList } from '../navigation/types';
+import { getLiveId } from '../screens/LiveViewerScreen';
+import { getSharedVideoId } from '../screens/SharedVideoScreen';
 import { colors } from '../theme/colors';
+
+// A first-time visitor who opened a shared video/live link sees this consent
+// gate before anything else — accepting must still land them on that link's
+// destination instead of always bouncing to the home feed.
+function getPostConsentRoute(): keyof RootStackParamList {
+  if (Platform.OS === 'web' && getLiveId()) return 'LiveViewer';
+  if (Platform.OS === 'web' && getSharedVideoId()) return 'SharedVideo';
+  return 'MainTabs';
+}
 
 export default function ConsentScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -52,7 +63,7 @@ export default function ConsentScreen() {
         testID="consent-continue"
         onPress={async () => {
           await accept();
-          navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+          navigation.reset({ index: 0, routes: [{ name: getPostConsentRoute() }] });
         }}
       >
         <Text style={styles.continueButtonText}>Kontynuuj</Text>

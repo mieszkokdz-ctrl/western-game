@@ -74,7 +74,7 @@ export default function MainTabs() {
           tabPress: e => {
             e.preventDefault();
             (navigation.getParent() as NativeStackNavigationProp<RootStackParamList> | undefined)?.navigate(
-              'Create'
+              'RecordChoice'
             );
           },
         })}
