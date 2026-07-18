@@ -1,8 +1,18 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
-import { Dimensions, Linking, Modal, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import VerticalFeed from '../components/VerticalFeed';
+import { useMemo, useRef, useState } from 'react';
+import {
+  Dimensions,
+  Linking,
+  Modal,
+  PanResponder,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import FeedItem from '../components/FeedItem';
 import { useVisibleFeed } from '../hooks/useVisibleFeed';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
@@ -23,15 +33,29 @@ export default function SharedVideoScreen() {
   const video = useMemo(() => feed.find(v => v.id === videoId), [feed, videoId]);
   const [installPromptVisible, setInstallPromptVisible] = useState(false);
 
+  // With only one video, the screen has nothing to physically scroll, so
+  // browsers never fire scroll events for a swipe here — a raw touch
+  // gesture is tracked instead, independent of any scroll container.
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => Math.abs(gestureState.dy) > 12,
+      onPanResponderRelease: (_, gestureState) => {
+        if (Math.abs(gestureState.dy) > 40) {
+          setInstallPromptVisible(true);
+        }
+      },
+    })
+  ).current;
+
   if (!video) {
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
     return null;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} {...panResponder.panHandlers}>
       <StatusBar barStyle="light-content" />
-      <VerticalFeed data={[video]} height={windowHeight} onSwipePastEnd={() => setInstallPromptVisible(true)} />
+      <FeedItem title={video} active height={windowHeight} />
 
       <Modal
         visible={installPromptVisible}
