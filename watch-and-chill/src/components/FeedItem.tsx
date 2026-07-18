@@ -27,8 +27,9 @@ export default function FeedItem({ title, active, height }: Props) {
   const liked = isLiked(title.id);
   const { getComments } = useComments();
   const commentCount = getComments(title.id).length;
-  const { getShareCount, incrementShare } = useShares();
+  const { getShareCount, incrementShare, hasShared } = useShares();
   const shareCount = title.shares + getShareCount(title.id);
+  const shared = hasShared(title.id);
   const [moderationVisible, setModerationVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [creatorProfileVisible, setCreatorProfileVisible] = useState(false);
@@ -70,7 +71,7 @@ export default function FeedItem({ title, active, height }: Props) {
   };
 
   const handleShare = async () => {
-    if (Platform.OS !== 'web') return;
+    if (Platform.OS !== 'web' || hasShared(title.id)) return;
     const shareUrl = new URL(window.location.href);
     shareUrl.search = `?v=${encodeURIComponent(title.id)}`;
     const shareData = {
@@ -153,7 +154,7 @@ export default function FeedItem({ title, active, height }: Props) {
         </TouchableWithoutFeedback>
         <TouchableWithoutFeedback onPress={handleShare} testID="share-button">
           <View style={styles.railItem}>
-            <Text style={styles.railIcon}>↗️</Text>
+            <Text style={styles.railIcon}>{shared ? '✅' : '↗️'}</Text>
             <Text style={styles.railLabel}>{formatCount(shareCount)}</Text>
           </View>
         </TouchableWithoutFeedback>
