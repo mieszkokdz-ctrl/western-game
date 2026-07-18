@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import type { ViewToken } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent, ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
 import type { Title } from '../data/catalog';
@@ -13,6 +13,8 @@ type Props = {
 
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const listRef = useRef<FlatList<Title>>(null);
+  const settledIndexRef = useRef(initialIndex);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -25,8 +27,29 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   // for the swipe to almost fully settle — makes transitions feel quicker.
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
+  // On web, CSS scroll-snap (pagingEnabled) only commits to the next video
+  // once the drag has covered roughly half of a full-screen-tall item —
+  // a much bigger swipe than people expect. This takes over the snap
+  // decision in JS with a much lower ~12% threshold instead.
+  const handleScrollEndDrag = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (Platform.OS !== 'web' || !listRef.current || height <= 0) return;
+      const offsetY = e.nativeEvent.contentOffset.y;
+      const settledOffset = settledIndexRef.current * height;
+      const delta = offsetY - settledOffset;
+      const threshold = height * 0.12;
+      let targetIndex = settledIndexRef.current;
+      if (delta > threshold) targetIndex = Math.min(data.length - 1, settledIndexRef.current + 1);
+      else if (delta < -threshold) targetIndex = Math.max(0, settledIndexRef.current - 1);
+      settledIndexRef.current = targetIndex;
+      listRef.current.scrollToIndex({ index: targetIndex, animated: true });
+    },
+    [data.length, height]
+  );
+
   return (
     <FlatList
+      ref={listRef}
       data={data}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
@@ -36,9 +59,12 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
       // Swiping down reveals the next video (rather than the usual swipe-up).
       inverted
-      pagingEnabled
+      // On web the snap decision is handled manually in handleScrollEndDrag
+      // instead, so the native mandatory-snap magnetism doesn't fight it.
+      pagingEnabled={Platform.OS !== 'web'}
+      onScrollEndDrag={handleScrollEndDrag}
       showsVerticalScrollIndicator={false}
-      snapToInterval={height}
+      snapToInterval={Platform.OS === 'web' ? undefined : height}
       snapToAlignment="start"
       decelerationRate="fast"
       disableIntervalMomentum
