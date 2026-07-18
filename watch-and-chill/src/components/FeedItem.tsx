@@ -71,10 +71,12 @@ export default function FeedItem({ title, active, height }: Props) {
 
   const handleShare = async () => {
     if (Platform.OS !== 'web') return;
+    const shareUrl = new URL(window.location.href);
+    shareUrl.search = `?v=${encodeURIComponent(title.id)}`;
     const shareData = {
       title: 'Watch&Chill',
       text: `${title.author}: ${title.caption}`,
-      url: window.location.href,
+      url: shareUrl.toString(),
     };
     // Counted as soon as the user opens the share sheet / copies the link,
     // rather than waiting on confirmation that it actually completed —

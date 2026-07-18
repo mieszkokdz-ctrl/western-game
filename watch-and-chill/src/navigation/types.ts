@@ -12,6 +12,7 @@ export type RootStackParamList = {
   Consent: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   Feed: { initialId: string };
+  SharedVideo: undefined;
   Create: undefined;
   Post: { uri: string };
   Terms: undefined;

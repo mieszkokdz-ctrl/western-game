@@ -9,9 +9,12 @@ type Props = {
   data: Title[];
   height: number;
   initialIndex?: number;
+  // Called when the user tries to swipe past the last video with nowhere
+  // left to go — used by the shared single-video view to prompt an app install.
+  onSwipePastEnd?: () => void;
 };
 
-export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
+export default function VerticalFeed({ data, height, initialIndex = 0, onSwipePastEnd }: Props) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList<Title>>(null);
   const settledIndexRef = useRef(initialIndex);
@@ -39,12 +42,19 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       const delta = offsetY - settledOffset;
       const threshold = height * 0.12;
       let targetIndex = settledIndexRef.current;
-      if (delta > threshold) targetIndex = Math.min(data.length - 1, settledIndexRef.current + 1);
-      else if (delta < -threshold) targetIndex = Math.max(0, settledIndexRef.current - 1);
+      if (delta > threshold) {
+        if (settledIndexRef.current >= data.length - 1) {
+          onSwipePastEnd?.();
+        } else {
+          targetIndex = settledIndexRef.current + 1;
+        }
+      } else if (delta < -threshold) {
+        targetIndex = Math.max(0, settledIndexRef.current - 1);
+      }
       settledIndexRef.current = targetIndex;
       listRef.current.scrollToIndex({ index: targetIndex, animated: true });
     },
-    [data.length, height]
+    [data.length, height, onSwipePastEnd]
   );
 
   return (
