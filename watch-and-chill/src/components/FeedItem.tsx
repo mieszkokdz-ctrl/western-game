@@ -1,6 +1,6 @@
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
 import CommentsSheet from './CommentsSheet';
 import CreatorProfileSheet from './CreatorProfileSheet';
 import ModerationSheet from './ModerationSheet';
@@ -31,6 +31,7 @@ export default function FeedItem({ title, active, height }: Props) {
   const [creatorProfileVisible, setCreatorProfileVisible] = useState(false);
   const [muted, setMuted] = useState(true);
   const [paused, setPaused] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const player = useVideoPlayer(title.videoUrl, p => {
     p.loop = true;
@@ -62,6 +63,32 @@ export default function FeedItem({ title, active, height }: Props) {
     }
   };
 
+  const handleShare = async () => {
+    if (Platform.OS !== 'web') return;
+    const shareData = {
+      title: 'Watch&Chill',
+      text: `${title.author}: ${title.caption}`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the share sheet — nothing to do.
+      }
+      return;
+    }
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 1800);
+      } catch {
+        // Clipboard access denied — nothing more we can do.
+      }
+    }
+  };
+
   return (
     <View style={[styles.container, { height }]}>
       <VideoView
@@ -88,6 +115,12 @@ export default function FeedItem({ title, active, height }: Props) {
         </View>
       )}
 
+      {linkCopied && (
+        <View style={styles.toast} pointerEvents="none">
+          <Text style={styles.toastText}>Link skopiowany</Text>
+        </View>
+      )}
+
       <View style={styles.rightRail} pointerEvents="box-none">
         <TouchableWithoutFeedback onPress={() => setCreatorProfileVisible(true)} testID="creator-avatar-button">
           <View style={styles.avatarWrap}>
@@ -106,10 +139,12 @@ export default function FeedItem({ title, active, height }: Props) {
             <Text style={styles.railLabel}>{formatCount(commentCount)}</Text>
           </View>
         </TouchableWithoutFeedback>
-        <View style={styles.railItem}>
-          <Text style={styles.railIcon}>↗️</Text>
-          <Text style={styles.railLabel}>{formatCount(title.shares)}</Text>
-        </View>
+        <TouchableWithoutFeedback onPress={handleShare} testID="share-button">
+          <View style={styles.railItem}>
+            <Text style={styles.railIcon}>↗️</Text>
+            <Text style={styles.railLabel}>{formatCount(title.shares)}</Text>
+          </View>
+        </TouchableWithoutFeedback>
         <TouchableWithoutFeedback onPress={() => setModerationVisible(true)} testID="moderation-menu-button">
           <View style={styles.railItem}>
             <Text style={styles.railIcon}>⋯</Text>
@@ -166,6 +201,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
+  },
+  toast: {
+    position: 'absolute',
+    top: '45%',
+    left: 40,
+    right: 40,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  toastText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
   },
   rightRail: {
     position: 'absolute',
