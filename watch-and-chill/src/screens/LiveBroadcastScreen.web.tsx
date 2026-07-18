@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile } from '../context/UserProfileContext';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { LIVE_ICE_SERVERS } from '../utils/liveRtcConfig';
 
 type Status = 'connecting' | 'live' | 'ended' | 'error';
 
@@ -56,7 +57,7 @@ export default function LiveBroadcastScreen() {
         }
 
         const id = makeLiveId();
-        const peer = new Peer(id);
+        const peer = new Peer(id, { config: { iceServers: LIVE_ICE_SERVERS } });
         peerRef.current = peer;
 
         peer.on('open', () => {
@@ -75,6 +76,16 @@ export default function LiveBroadcastScreen() {
             activeCallsRef.current.delete(call);
             setViewerCount(activeCallsRef.current.size);
           });
+        });
+
+        // The connection to the signaling server can drop on its own — e.g.
+        // the phone briefly loses signal, or the browser throttles the tab
+        // while the user switches apps to send the share link. Without this,
+        // the live ID silently becomes unreachable and every viewer who taps
+        // the link afterwards sees "not found" even though the broadcaster
+        // thinks they're still live. Reconnecting keeps the same ID working.
+        peer.on('disconnected', () => {
+          if (!cancelled) peer.reconnect();
         });
 
         peer.on('error', err => {

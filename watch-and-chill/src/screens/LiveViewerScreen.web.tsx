@@ -6,10 +6,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
+import { LIVE_ICE_SERVERS } from '../utils/liveRtcConfig';
 
 type Status = 'connecting' | 'watching' | 'ended' | 'not-found';
 
-const CONNECT_TIMEOUT_MS = 15000;
+// Generous enough to allow a TURN relay negotiation to complete on a slow
+// mobile connection, not just a fast direct STUN path.
+const CONNECT_TIMEOUT_MS = 20000;
 
 export function getLiveId(): string | null {
   if (typeof window === 'undefined') return null;
@@ -23,6 +26,7 @@ export default function LiveViewerScreen() {
   const callRef = useRef<MediaConnection | null>(null);
   const liveId = useMemo(() => getLiveId(), []);
   const [status, setStatus] = useState<Status>('connecting');
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (!liveId) {
@@ -30,8 +34,9 @@ export default function LiveViewerScreen() {
       return;
     }
 
+    setStatus('connecting');
     let cancelled = false;
-    const peer = new Peer();
+    const peer = new Peer({ config: { iceServers: LIVE_ICE_SERVERS } });
     peerRef.current = peer;
 
     // Cleared as soon as the remote stream actually attaches, so this only
@@ -63,6 +68,10 @@ export default function LiveViewerScreen() {
       });
     });
 
+    peer.on('disconnected', () => {
+      if (!cancelled) peer.reconnect();
+    });
+
     peer.on('error', err => {
       console.warn('Peer error', err);
       if (!cancelled) setStatus('not-found');
@@ -74,7 +83,7 @@ export default function LiveViewerScreen() {
       callRef.current?.close();
       peer.destroy();
     };
-  }, [liveId]);
+  }, [liveId, retryCount]);
 
   const goHome = () => {
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
@@ -89,8 +98,17 @@ export default function LiveViewerScreen() {
         <Text style={styles.messageText}>
           {status === 'ended'
             ? 'Nadawca zakończył transmisję na żywo.'
-            : 'Ten link do transmisji live jest nieprawidłowy albo transmisja już się skończyła.'}
+            : 'Ten link do transmisji live jest nieprawidłowy, transmisja się skończyła, albo nadawca chwilowo stracił połączenie — spróbuj ponownie.'}
         </Text>
+        {status === 'not-found' && liveId && (
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => setRetryCount(c => c + 1)}
+            testID="live-viewer-retry-button"
+          >
+            <Text style={styles.retryButtonText}>Spróbuj ponownie</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={styles.homeButton} onPress={goHome} testID="live-viewer-home-button">
           <Text style={styles.homeButtonText}>Przejdź do Watch&Chill</Text>
         </TouchableOpacity>
@@ -169,6 +187,19 @@ const styles = StyleSheet.create({
     borderRadius: 30,
   },
   homeButtonText: {
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  retryButton: {
+    marginBottom: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  retryButtonText: {
     color: colors.text,
     fontWeight: '700',
     fontSize: 15,
