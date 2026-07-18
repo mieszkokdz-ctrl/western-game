@@ -46,6 +46,9 @@ export default function FeedItem({ title, active, height }: Props) {
 
   useEffect(() => {
     if (active) {
+      // Always start from the beginning rather than resuming wherever a
+      // previous scroll-away left it paused.
+      player.currentTime = 0;
       player.play();
       setPaused(false);
     } else {
