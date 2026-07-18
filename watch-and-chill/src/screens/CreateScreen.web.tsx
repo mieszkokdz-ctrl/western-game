@@ -3,10 +3,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import RecordingTimerRing from '../components/RecordingTimerRing';
 import type { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 
 type Facing = 'user' | 'environment';
+
+const MAX_RECORDING_SECONDS = 60;
 
 function pickMimeType(): string | undefined {
   const candidates = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
@@ -26,6 +29,17 @@ export default function CreateScreen() {
   const [facing, setFacing] = useState<Facing>('user');
   const [isRecording, setIsRecording] = useState(false);
   const [permissionState, setPermissionState] = useState<'idle' | 'granted' | 'denied'>('idle');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const recordingStartRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopTimer = () => {
+    if (timerRef.current != null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setElapsedSeconds(0);
+  };
 
   const stopStream = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -58,6 +72,7 @@ export default function CreateScreen() {
     startStream();
     return () => {
       stopStream();
+      stopTimer();
       recorderRef.current?.stop();
     };
   }, [facing]);
@@ -77,6 +92,7 @@ export default function CreateScreen() {
       if (event.data.size > 0) chunksRef.current.push(event.data);
     };
     recorder.onstop = () => {
+      stopTimer();
       const blob = new Blob(chunksRef.current, { type: mimeType ?? 'video/webm' });
       const uri = URL.createObjectURL(blob);
       setIsRecording(false);
@@ -85,6 +101,18 @@ export default function CreateScreen() {
     recorderRef.current = recorder;
     recorder.start();
     setIsRecording(true);
+
+    recordingStartRef.current = Date.now();
+    setElapsedSeconds(0);
+    timerRef.current = setInterval(() => {
+      const seconds = (Date.now() - recordingStartRef.current) / 1000;
+      if (seconds >= MAX_RECORDING_SECONDS) {
+        setElapsedSeconds(MAX_RECORDING_SECONDS);
+        recorderRef.current?.stop();
+      } else {
+        setElapsedSeconds(seconds);
+      }
+    }, 200);
   };
 
   if (permissionState === 'idle') {
@@ -143,10 +171,17 @@ export default function CreateScreen() {
       </SafeAreaView>
 
       <SafeAreaView style={styles.bottomBar} edges={['bottom']}>
-        <Text style={styles.hint}>{isRecording ? 'Nagrywanie... dotknij, aby zakończyć' : 'Dotknij, aby nagrać'}</Text>
-        <TouchableOpacity style={styles.recordOuter} onPress={handleRecordPress} testID="record-button">
-          <View style={[styles.recordInner, isRecording && styles.recordInnerActive]} />
-        </TouchableOpacity>
+        <Text style={styles.hint}>
+          {isRecording ? 'Nagrywanie... dotknij, aby zakończyć' : 'Dotknij, aby nagrać (max 60s)'}
+        </Text>
+        <View style={styles.recordButtonWrap}>
+          {isRecording && (
+            <RecordingTimerRing elapsedSeconds={elapsedSeconds} durationSeconds={MAX_RECORDING_SECONDS} size={94} />
+          )}
+          <TouchableOpacity style={styles.recordOuter} onPress={handleRecordPress} testID="record-button">
+            <View style={[styles.recordInner, isRecording && styles.recordInnerActive]} />
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </View>
   );
@@ -233,6 +268,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowRadius: 4,
+  },
+  recordButtonWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recordOuter: {
     width: 78,
