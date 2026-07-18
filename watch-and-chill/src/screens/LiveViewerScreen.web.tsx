@@ -79,19 +79,33 @@ export default function LiveViewerScreen() {
         if (cancelled || !videoRef.current) return;
         // Force the property directly rather than relying only on the JSX
         // `muted` prop — React doesn't always sync that attribute to the
-        // live DOM property in time for an imperative play() call right
-        // after srcObject is set, which can make autoplay fail even though
-        // the element looks muted.
+        // live DOM property in time for the element's own autoplay to see it.
         videoRef.current.muted = true;
         videoRef.current.srcObject = remoteStream;
-        videoRef.current.play().catch((err: DOMException) => {
-          // Extremely unlikely once muted, but if it still gets blocked,
-          // needsTap lets the user start it with a direct tap instead.
-          if (!cancelled) {
+        // The `autoPlay` attribute already asks the browser to start playing
+        // as soon as srcObject has enough data — calling .play() ourselves
+        // in the same tick races that built-in attempt and can get one of
+        // the two calls aborted ("interrupted because the media was removed
+        // from the document"). Give the attribute a moment to work first,
+        // and only step in manually if it's genuinely still paused.
+        const video = videoRef.current;
+        const attemptPlay = (isRetry: boolean) => {
+          if (cancelled || !video.paused) return;
+          video.play().catch((err: DOMException) => {
+            if (cancelled) return;
+            // AbortError means something else interrupted this specific
+            // play() call (not a real autoplay-policy block) — one retry is
+            // usually enough for it to settle. Anything else (most commonly
+            // NotAllowedError) is a genuine block that needs a real tap.
+            if (err.name === 'AbortError' && !isRetry) {
+              setTimeout(() => attemptPlay(true), 500);
+              return;
+            }
             setNeedsTap(true);
             setPlayError(`${err.name}: ${err.message}`);
-          }
-        });
+          });
+        };
+        setTimeout(() => attemptPlay(false), 500);
       });
       call.on('iceStateChanged', state => {
         if (cancelled) return;
