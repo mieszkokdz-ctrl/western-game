@@ -47,9 +47,19 @@ export default function LiveViewerScreen() {
 
     peer.on('open', () => {
       if (cancelled) return;
-      // A receive-only call still needs a MediaStream argument to negotiate —
-      // an empty one (no tracks) works fine since nothing is actually sent.
-      const call = peer.call(liveId, new MediaStream());
+      // A receive-only call still needs a MediaStream argument, but an empty
+      // one contributes zero tracks — with nothing added, the resulting SDP
+      // offer has no video/audio section at all, so there is nothing for the
+      // broadcaster's answer to attach their camera stream to and no video
+      // ever arrives. offerToReceiveVideo/Audio explicitly requests recvonly
+      // media sections in the offer so the answer actually has something to
+      // fill in.
+      // `constraints` is read by PeerJS at runtime (passed straight through
+      // to RTCPeerConnection#createOffer) but missing from its CallOption
+      // type — cast to pass it through.
+      const call = peer.call(liveId, new MediaStream(), {
+        constraints: { offerToReceiveAudio: true, offerToReceiveVideo: true },
+      } as Parameters<Peer['call']>[2]);
       callRef.current = call;
       call.on('stream', remoteStream => {
         if (cancelled) return;
