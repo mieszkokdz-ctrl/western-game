@@ -40,6 +40,10 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // far more than shaving down the swipe distance.
       pagingEnabled
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
+      // Swiping down reveals the next video — the user's consistent
+      // preference, even though it's the opposite of real TikTok's
+      // swipe-up convention.
+      inverted
       showsVerticalScrollIndicator={false}
       snapToInterval={height}
       snapToAlignment="start"
