@@ -73,8 +73,7 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // physics; -webkit-overflow-scrolling makes that momentum feel smooth
       // on iOS/Safari instead of stepping abruptly between videos.
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
-      // Swiping down reveals the next video (rather than the usual swipe-up).
-      inverted
+      // Swiping up reveals the next video, matching TikTok's convention.
       // On web the snap decision is handled manually in handleScrollEndDrag
       // instead, so the native mandatory-snap magnetism doesn't fight it.
       pagingEnabled={Platform.OS !== 'web'}
