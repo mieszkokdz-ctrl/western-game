@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, ViewToken } from 'react-native';
+import { useRef, useState } from 'react';
+import type { ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
 import type { Title } from '../data/catalog';
@@ -26,24 +26,6 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   // for the swipe to almost fully settle — makes transitions feel quicker.
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
-  // On web, mandatory CSS scroll-snap combined with the scaleY(-1) transform
-  // `inverted` needs for "swipe down = next video" made touch scrolling
-  // barely responsive on a real device. Instead, scrolling here is left
-  // completely free (native momentum, no CSS snap) and corrected to the
-  // nearest item only once it has fully come to rest — never while
-  // anything is still animating, which is what caused an earlier attempt
-  // at this to get visually stuck between two videos.
-  const handleMomentumScrollEnd = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (Platform.OS !== 'web' || !listRef.current || height <= 0) return;
-      const offsetY = e.nativeEvent.contentOffset.y;
-      const targetIndex = Math.max(0, Math.min(data.length - 1, Math.round(offsetY / height)));
-      setActiveIndex(targetIndex);
-      listRef.current.scrollToIndex({ index: targetIndex, animated: true });
-    },
-    [data.length, height]
-  );
-
   return (
     <FlatList
       ref={listRef}
@@ -53,12 +35,17 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // Swiping down reveals the next video.
       inverted
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
-      // Native mandatory paging stays on for native apps (no transform
-      // conflict there); web relies on handleMomentumScrollEnd instead.
-      pagingEnabled={Platform.OS !== 'web'}
-      onMomentumScrollEnd={handleMomentumScrollEnd}
+      // Native, browser-guaranteed mandatory paging. This has been tried
+      // both ways: with a JS-driven "correct once settled" replacement
+      // instead (to dodge a suspected conflict between this and the
+      // `inverted` transform), the correction didn't reliably fire on a
+      // real device and the list got stuck showing two videos at once —
+      // a worse, more confusing bug than swiping needing a fuller gesture.
+      // Native mandatory scroll-snap can't get stuck like that; it's kept
+      // even if it turns out swiping feels a little heavier as a result.
+      pagingEnabled
       showsVerticalScrollIndicator={false}
-      snapToInterval={Platform.OS === 'web' ? undefined : height}
+      snapToInterval={height}
       snapToAlignment="start"
       decelerationRate="fast"
       disableIntervalMomentum
