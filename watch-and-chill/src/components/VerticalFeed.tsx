@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
@@ -12,12 +12,21 @@ type Props = {
 };
 
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  // Rendered back-to-front so the *next* video sits physically above the
+  // current one in the scroll container. That makes swiping down (which,
+  // with no CSS transform involved, always reveals whatever's above the
+  // current scroll position) advance to the next video — matching TikTok's
+  // down-swipe convention using nothing but native FlatList paging/snap.
+  // No scaleY(-1), no custom scroll-correction JS, no column-reverse: all
+  // three were tried earlier and each had a confirmed real-device bug.
+  const reversedData = useMemo(() => [...data].reverse(), [data]);
+  const reversedInitialIndex = Math.max(0, reversedData.length - 1 - initialIndex);
+  const [activeReversedIndex, setActiveReversedIndex] = useState(reversedInitialIndex);
   const listRef = useRef<FlatList<Title>>(null);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
-      setActiveIndex(viewableItems[0].index);
+      setActiveReversedIndex(viewableItems[0].index);
     }
   }).current;
 
@@ -29,18 +38,11 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   return (
     <FlatList
       ref={listRef}
-      data={data}
+      data={reversedData}
       keyExtractor={item => item.id}
-      renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
-      // Swiping up reveals the next video (standard behavior, matching real
-      // TikTok). Every variant of "swipe down instead" tried here — the
-      // scaleY(-1) `inverted` transform, a JS re-implementation of the snap,
-      // and `flex-direction: column-reverse` — turned out to have a real,
-      // confirmed reliability problem (verified directly: column-reverse's
-      // scrollTop doesn't even respond consistently to being set). Plain,
-      // untransformed scrolling combined with native mandatory scroll-snap
-      // is the one combination that has held up without a new bug each
-      // time, so it's what stays.
+      renderItem={({ item, index }) => (
+        <FeedItem title={item} active={index === activeReversedIndex} height={height} />
+      )}
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
       pagingEnabled
       showsVerticalScrollIndicator={false}
@@ -48,7 +50,7 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       snapToAlignment="start"
       decelerationRate="fast"
       disableIntervalMomentum
-      initialScrollIndex={initialIndex}
+      initialScrollIndex={reversedInitialIndex}
       getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
