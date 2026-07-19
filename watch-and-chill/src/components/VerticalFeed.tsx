@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
@@ -14,7 +14,17 @@ type Props = {
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList<Title>>(null);
+  // Mirrors activeIndex so handleScrollEndDrag's snap math always starts
+  // from the item that's actually playing. Previously this ref only ever
+  // got written from inside handleScrollEndDrag itself, independently of
+  // activeIndex (updated separately by onViewableItemsChanged) — the two
+  // could drift apart after a partial swipe that crossed the viewability
+  // threshold but not the snap threshold, making the next swipe jump from
+  // the wrong baseline and effectively go the wrong way.
   const settledIndexRef = useRef(initialIndex);
+  useEffect(() => {
+    settledIndexRef.current = activeIndex;
+  }, [activeIndex]);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -42,6 +52,12 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       if (delta > threshold) targetIndex = Math.min(data.length - 1, settledIndexRef.current + 1);
       else if (delta < -threshold) targetIndex = Math.max(0, settledIndexRef.current - 1);
       settledIndexRef.current = targetIndex;
+      // Set directly instead of waiting on onViewableItemsChanged to catch
+      // up after the animated scrollToIndex below — on a real device the
+      // timing of that callback isn't guaranteed, so this is the one
+      // authoritative place both the snap target and the active (playing)
+      // item get decided together.
+      setActiveIndex(targetIndex);
       listRef.current.scrollToIndex({ index: targetIndex, animated: true });
     },
     [data.length, height]
