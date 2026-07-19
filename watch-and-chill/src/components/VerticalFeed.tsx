@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
@@ -12,7 +12,16 @@ type Props = {
 };
 
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  // Swiping down reveals the next video. Previously done via RN's `inverted`
+  // prop (a CSS scaleY(-1) transform on the scroll container) combined with
+  // mandatory CSS scroll-snap — that combination made swiping nearly
+  // unresponsive on a real device. Reversing the data instead gets the same
+  // swipe-down-for-next behavior through a plain, non-transformed scroll
+  // (a normal swipe-up-for-next list, just fed the videos back to front).
+  const reversedData = useMemo(() => [...data].reverse(), [data]);
+  const reversedInitialIndex = Math.max(0, Math.min(reversedData.length - 1, reversedData.length - 1 - initialIndex));
+
+  const [activeIndex, setActiveIndex] = useState(reversedInitialIndex);
   const listRef = useRef<FlatList<Title>>(null);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -29,7 +38,7 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   return (
     <FlatList
       ref={listRef}
-      data={data}
+      data={reversedData}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
       // Native, browser-guaranteed paging — a hand-rolled JS re-implementation
@@ -40,16 +49,12 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // far more than shaving down the swipe distance.
       pagingEnabled
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
-      // Swiping down reveals the next video — the user's consistent
-      // preference, even though it's the opposite of real TikTok's
-      // swipe-up convention.
-      inverted
       showsVerticalScrollIndicator={false}
       snapToInterval={height}
       snapToAlignment="start"
       decelerationRate="fast"
       disableIntervalMomentum
-      initialScrollIndex={initialIndex}
+      initialScrollIndex={reversedInitialIndex}
       getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
