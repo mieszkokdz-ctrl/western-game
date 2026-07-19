@@ -14,17 +14,20 @@ type Props = {
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList<Title>>(null);
-  // Mirrors activeIndex so handleScrollEndDrag's snap math always starts
-  // from the item that's actually playing. Previously this ref only ever
-  // got written from inside handleScrollEndDrag itself, independently of
-  // activeIndex (updated separately by onViewableItemsChanged) — the two
-  // could drift apart after a partial swipe that crossed the viewability
-  // threshold but not the snap threshold, making the next swipe jump from
-  // the wrong baseline and effectively go the wrong way.
   const settledIndexRef = useRef(initialIndex);
   useEffect(() => {
     settledIndexRef.current = activeIndex;
   }, [activeIndex]);
+
+  // Where the drag actually started, measured fresh every time — used
+  // instead of trusting settledIndexRef * height as the swipe baseline.
+  // The previous snap's scrollToIndex({animated:true}) can still be
+  // mid-animation when the next drag begins (a quick second swipe right
+  // after the first), so an assumed "settled" position could be stale;
+  // this always reflects where the list really is at the moment the new
+  // gesture starts, which is why only the first swipe worked reliably
+  // before and later ones could snap to the wrong place or not move.
+  const dragStartOffsetRef = useRef(0);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     if (viewableItems.length > 0 && viewableItems[0].index != null) {
@@ -37,6 +40,10 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   // for the swipe to almost fully settle — makes transitions feel quicker.
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
+  const handleScrollBeginDrag = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    dragStartOffsetRef.current = e.nativeEvent.contentOffset.y;
+  }, []);
+
   // On web, CSS scroll-snap (pagingEnabled) only commits to the next video
   // once the drag has covered roughly half of a full-screen-tall item —
   // a much bigger swipe than people expect. This takes over the snap
@@ -45,12 +52,12 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
       if (Platform.OS !== 'web' || !listRef.current || height <= 0) return;
       const offsetY = e.nativeEvent.contentOffset.y;
-      const settledOffset = settledIndexRef.current * height;
-      const delta = offsetY - settledOffset;
+      const baselineIndex = Math.round(dragStartOffsetRef.current / height);
+      const delta = offsetY - dragStartOffsetRef.current;
       const threshold = height * 0.12;
-      let targetIndex = settledIndexRef.current;
-      if (delta > threshold) targetIndex = Math.min(data.length - 1, settledIndexRef.current + 1);
-      else if (delta < -threshold) targetIndex = Math.max(0, settledIndexRef.current - 1);
+      let targetIndex = baselineIndex;
+      if (delta > threshold) targetIndex = Math.min(data.length - 1, baselineIndex + 1);
+      else if (delta < -threshold) targetIndex = Math.max(0, baselineIndex - 1);
       settledIndexRef.current = targetIndex;
       // Set directly instead of waiting on onViewableItemsChanged to catch
       // up after the animated scrollToIndex below — on a real device the
@@ -77,6 +84,7 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       // On web the snap decision is handled manually in handleScrollEndDrag
       // instead, so the native mandatory-snap magnetism doesn't fight it.
       pagingEnabled={Platform.OS !== 'web'}
+      onScrollBeginDrag={handleScrollBeginDrag}
       onScrollEndDrag={handleScrollEndDrag}
       showsVerticalScrollIndicator={false}
       snapToInterval={Platform.OS === 'web' ? undefined : height}
