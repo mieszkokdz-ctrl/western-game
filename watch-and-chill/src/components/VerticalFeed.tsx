@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
-import type { ViewToken } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import type { NativeScrollEvent, NativeSyntheticEvent, ViewToken } from 'react-native';
 import { FlatList, Platform, StyleSheet, Text, View } from 'react-native';
 import FeedItem from './FeedItem';
 import type { Title } from '../data/catalog';
@@ -12,16 +12,7 @@ type Props = {
 };
 
 export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) {
-  // Swiping down reveals the next video. Previously done via RN's `inverted`
-  // prop (a CSS scaleY(-1) transform on the scroll container) combined with
-  // mandatory CSS scroll-snap — that combination made swiping nearly
-  // unresponsive on a real device. Reversing the data instead gets the same
-  // swipe-down-for-next behavior through a plain, non-transformed scroll
-  // (a normal swipe-up-for-next list, just fed the videos back to front).
-  const reversedData = useMemo(() => [...data].reverse(), [data]);
-  const reversedInitialIndex = Math.max(0, Math.min(reversedData.length - 1, reversedData.length - 1 - initialIndex));
-
-  const [activeIndex, setActiveIndex] = useState(reversedInitialIndex);
+  const [activeIndex, setActiveIndex] = useState(initialIndex);
   const listRef = useRef<FlatList<Title>>(null);
 
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -35,26 +26,43 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
   // for the swipe to almost fully settle — makes transitions feel quicker.
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 40 }).current;
 
+  // On web, mandatory CSS scroll-snap combined with the scaleY(-1) transform
+  // `inverted` needs for "swipe down = next video" made touch scrolling
+  // barely responsive on a real device. Instead, scrolling here is left
+  // completely free (native momentum, no CSS snap) and corrected to the
+  // nearest item only once it has fully come to rest — never while
+  // anything is still animating, which is what caused an earlier attempt
+  // at this to get visually stuck between two videos.
+  const handleMomentumScrollEnd = useCallback(
+    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (Platform.OS !== 'web' || !listRef.current || height <= 0) return;
+      const offsetY = e.nativeEvent.contentOffset.y;
+      const targetIndex = Math.max(0, Math.min(data.length - 1, Math.round(offsetY / height)));
+      setActiveIndex(targetIndex);
+      listRef.current.scrollToIndex({ index: targetIndex, animated: true });
+    },
+    [data.length, height]
+  );
+
   return (
     <FlatList
       ref={listRef}
-      data={reversedData}
+      data={data}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
-      // Native, browser-guaranteed paging — a hand-rolled JS re-implementation
-      // of this (tried previously, to make the swipe threshold shorter) kept
-      // producing new bugs: wrong direction, not settling on the second swipe,
-      // and getting visually stuck halfway between two videos. Mandatory CSS
-      // scroll-snap can never leave the list stuck mid-item, which matters
-      // far more than shaving down the swipe distance.
-      pagingEnabled
+      // Swiping down reveals the next video.
+      inverted
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
+      // Native mandatory paging stays on for native apps (no transform
+      // conflict there); web relies on handleMomentumScrollEnd instead.
+      pagingEnabled={Platform.OS !== 'web'}
+      onMomentumScrollEnd={handleMomentumScrollEnd}
       showsVerticalScrollIndicator={false}
-      snapToInterval={height}
+      snapToInterval={Platform.OS === 'web' ? undefined : height}
       snapToAlignment="start"
       decelerationRate="fast"
       disableIntervalMomentum
-      initialScrollIndex={reversedInitialIndex}
+      initialScrollIndex={initialIndex}
       getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
       onViewableItemsChanged={onViewableItemsChanged}
       viewabilityConfig={viewabilityConfig}
