@@ -32,17 +32,16 @@ export default function VerticalFeed({ data, height, initialIndex = 0 }: Props) 
       data={data}
       keyExtractor={item => item.id}
       renderItem={({ item, index }) => <FeedItem title={item} active={index === activeIndex} height={height} />}
-      // Swiping down reveals the next video.
-      inverted
+      // Swiping up reveals the next video (standard behavior, matching real
+      // TikTok). Every variant of "swipe down instead" tried here — the
+      // scaleY(-1) `inverted` transform, a JS re-implementation of the snap,
+      // and `flex-direction: column-reverse` — turned out to have a real,
+      // confirmed reliability problem (verified directly: column-reverse's
+      // scrollTop doesn't even respond consistently to being set). Plain,
+      // untransformed scrolling combined with native mandatory scroll-snap
+      // is the one combination that has held up without a new bug each
+      // time, so it's what stays.
       style={Platform.OS === 'web' ? ({ WebkitOverflowScrolling: 'touch' } as object) : undefined}
-      // Native, browser-guaranteed mandatory paging. This has been tried
-      // both ways: with a JS-driven "correct once settled" replacement
-      // instead (to dodge a suspected conflict between this and the
-      // `inverted` transform), the correction didn't reliably fire on a
-      // real device and the list got stuck showing two videos at once —
-      // a worse, more confusing bug than swiping needing a fuller gesture.
-      // Native mandatory scroll-snap can't get stuck like that; it's kept
-      // even if it turns out swiping feels a little heavier as a result.
       pagingEnabled
       showsVerticalScrollIndicator={false}
       snapToInterval={height}
