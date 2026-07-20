@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Śledzenie samolotów na żywo</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root {
+    --bg: #0b1220;
+    --panel: #10192e;
+    --panel-border: #1f2c47;
+    --text: #e6ecf7;
+    --text-dim: #8a9ab3;
+    --accent: #4dd0e1;
+    --accent-2: #ffb74d;
+    --danger: #ef5350;
+    --ok: #66bb6a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  #map { position: fixed; inset: 0; background: #060a14; }
+
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 16px;
+    background: rgba(11, 18, 32, 0.9);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--panel-border);
+  }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header h1 .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 8px var(--ok);
+  }
+  header h1 .dot.loading { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); animation: pulse 1s infinite; }
+  header h1 .dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: none; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .stat {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .stat b { color: var(--text); }
+
+  #search {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #search input {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    width: 160px;
+    outline: none;
+  }
+  #search input:focus { border-color: var(--accent); }
+  #search button, #refreshBtn {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #search button:hover, #refreshBtn:hover { border-color: var(--accent); color: var(--accent); }
+  #refreshBtn.paused { color: var(--accent-2); border-color: var(--accent-2); }
+
+  #banner {
+    position: fixed;
+    top: 66px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    background: rgba(239, 83, 80, 0.15);
+    border: 1px solid var(--danger);
+    color: #ffcdd2;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  #infoPanel {
+    position: fixed;
+    top: 72px; right: 16px;
+    z-index: 1000;
+    width: 260px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 16px;
+    display: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  #infoPanel h2 {
+    font-size: 18px;
+    margin: 0 0 4px 0;
+    letter-spacing: 1px;
+  }
+  #infoPanel .country {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  #infoPanel .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-top: 1px solid var(--panel-border);
+    font-size: 13px;
+  }
+  #infoPanel .row .label { color: var(--text-dim); }
+  #infoPanel .close {
+    position: absolute;
+    top: 10px; right: 12px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 16px;
+    background: none;
+    border: none;
+  }
+  #infoPanel .close:hover { color: var(--text); }
+  #infoPanel .ground-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(102, 187, 106, 0.15);
+    color: var(--ok);
+    border: 1px solid var(--ok);
+  }
+  #infoPanel .ground-badge.air {
+    background: rgba(77, 208, 225, 0.15);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  #legend {
+    position: fixed;
+    bottom: 16px; left: 16px;
+    z-index: 1000;
+    background: rgba(16, 25, 46, 0.85);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  #legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+  .leaflet-control-attribution {
+    background: rgba(11, 18, 32, 0.7) !important;
+    color: var(--text-dim) !important;
+  }
+  .leaflet-control-attribution a { color: var(--accent) !important; }
+  .leaflet-control-zoom a {
+    background: var(--panel) !important;
+    color: var(--text) !important;
+    border-color: var(--panel-border) !important;
+  }
+
+  #searchMsg {
+    position: fixed;
+    top: 66px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 1001;
+    background: rgba(255, 183, 77, 0.15);
+    border: 1px solid var(--accent-2);
+    color: #ffe0b2;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    header { gap: 8px; padding: 0 10px; }
+    header h1 span.long { display: none; }
+    .stat.hide-mobile { display: none; }
+    #search input { width: 110px; }
+    #infoPanel { width: calc(100vw - 32px); right: 16px; left: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dot loading" id="statusDot"></span>✈️ <span class="long">Samoloty na żywo</span></h1>
+  <div class="stat">Widocznych: <b id="countStat">–</b></div>
+  <div class="stat hide-mobile">Ostatnia aktualizacja: <b id="timeStat">–</b></div>
+  <div id="search">
+    <input type="text" id="callsignInput" placeholder="Znajdź lot (np. LOT123)" autocomplete="off">
+    <button id="searchBtn">Szukaj</button>
+    <button id="refreshBtn" title="Wstrzymaj/wznów automatyczne odświeżanie">⏸</button>
+  </div>
+</header>
+
+<div id="banner"></div>
+<div id="searchMsg"></div>
+
+<div id="map"></div>
+
+<div id="infoPanel">
+  <button class="close" id="closeInfo">✕</button>
+  <h2 id="infoCallsign">—</h2>
+  <div class="country" id="infoCountry">—</div>
+  <span class="ground-badge" id="infoGroundBadge">—</span>
+  <div class="row"><span class="label">Wysokość</span><span id="infoAlt">—</span></div>
+  <div class="row"><span class="label">Prędkość</span><span id="infoSpeed">—</span></div>
+  <div class="row"><span class="label">Kurs</span><span id="infoHeading">—</span></div>
+  <div class="row"><span class="label">Pr. pionowa</span><span id="infoVrate">—</span></div>
+  <div class="row"><span class="label">ICAO24</span><span id="infoIcao">—</span></div>
+</div>
+
+<div id="legend">
+  <div><span class="swatch" style="background:#4dd0e1"></span>W locie</div>
+  <div><span class="swatch" style="background:#78909c"></span>Na ziemi</div>
+  <div style="margin-top:4px;opacity:0.7">Dane: OpenSky Network</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var map = L.map('map', {
+    worldCopyJump: true,
+    zoomControl: true,
+    minZoom: 2,
+    maxZoom: 12,
+    preferCanvas: true
+  }).setView([50, 15], 4);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  // ---- Canvas overlay layer for aircraft (handles thousands of points smoothly) ----
+  var AircraftLayer = L.Layer.extend({
+    onAdd: function (map) {
+      this._map = map;
+      this._canvas = L.DomUtil.create('canvas', 'aircraft-canvas');
+      var size = map.getSize();
+      this._canvas.width = size.x;
+      this._canvas.height = size.y;
+      this._ctx = this._canvas.getContext('2d');
+      map.getPanes().overlayPane.appendChild(this._canvas);
+
+      map.on('viewreset move zoom resize', this._reset, this);
+      this._canvas.addEventListener('click', this._onClick.bind(this));
+      this._canvas.addEventListener('mousemove', this._onMove.bind(this));
+      this._reset();
+    },
+    onRemove: function (map) {
+      L.DomUtil.remove(this._canvas);
+      map.off('viewreset move zoom resize', this._reset, this);
+    },
+    setData: function (aircraft) {
+      this._data = aircraft;
+      this._draw();
+    },
+    _reset: function () {
+      var topLeft = this._map.containerPointToLayerPoint([0, 0]);
+      L.DomUtil.setPosition(this._canvas, topLeft);
+      var size = this._map.getSize();
+      this._canvas.width = size.x;
+      this._canvas.height = size.y;
+      this._draw();
+    },
+    _draw: function () {
+      if (!this._ctx) return;
+      var ctx = this._ctx;
+      ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+      if (!this._data) return;
+      var map = this._map;
+      var size = map.getSize();
+      var self = this;
+      this._data.forEach(function (ac) {
+        var pt = map.latLngToContainerPoint([ac.lat, ac.lon]);
+        if (pt.x < -20 || pt.y < -20 || pt.x > size.x + 20 || pt.y > size.y + 20) return;
+        self._drawPlane(ctx, pt.x, pt.y, ac.track || 0, ac.onGround, ac === self._highlighted);
+      });
+    },
+    _drawPlane: function (ctx, x, y, track, onGround, highlighted) {
+      var color = onGround ? '#78909c' : '#4dd0e1';
+      var scale = highlighted ? 1.6 : 1;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((track - 90) * Math.PI / 180);
+      ctx.scale(scale, scale);
+      ctx.beginPath();
+      ctx.moveTo(7, 0);
+      ctx.lineTo(-5, 4);
+      ctx.lineTo(-2.5, 0);
+      ctx.lineTo(-5, -4);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = highlighted ? 10 : 4;
+      ctx.fill();
+      if (highlighted) {
+        ctx.strokeStyle = '#ffb74d';
+        ctx.lineWidth = 1.5;
+        ctx.shadowBlur = 0;
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+    _findNearest: function (x, y, radius) {
+      if (!this._data) return null;
+      var map = this._map;
+      var best = null, bestDist = radius * radius;
+      for (var i = 0; i < this._data.length; i++) {
+        var ac = this._data[i];
+        var pt = map.latLngToContainerPoint([ac.lat, ac.lon]);
+        var dx = pt.x - x, dy = pt.y - y;
+        var d = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; best = ac; }
+      }
+      return best;
+    },
+    _onClick: function (e) {
+      var rect = this._canvas.getBoundingClientRect();
+      var x = e.clientX - rect.left, y = e.clientY - rect.top;
+      var hit = this._findNearest(x, y, 10);
+      if (this.onSelect) this.onSelect(hit);
+    },
+    _onMove: function (e) {
+      var rect = this._canvas.getBoundingClientRect();
+      var x = e.clientX - rect.left, y = e.clientY - rect.top;
+      var hit = this._findNearest(x, y, 10);
+      this._canvas.style.cursor = hit ? 'pointer' : '';
+    },
+    highlight: function (ac) {
+      this._highlighted = ac;
+      this._draw();
+    }
+  });
+
+  var aircraftLayer = new AircraftLayer();
+  aircraftLayer.addTo(map);
+
+  // ---- State ----
+  var currentData = [];
+  var byIcao = {};
+  var autoRefresh = true;
+  var fetching = false;
+  var lastFetch = 0;
+  var backoffMs = 15000;
+  var timer = null;
+
+  var statusDot = document.getElementById('statusDot');
+  var countStat = document.getElementById('countStat');
+  var timeStat = document.getElementById('timeStat');
+  var banner = document.getElementById('banner');
+  var searchMsg = document.getElementById('searchMsg');
+  var infoPanel = document.getElementById('infoPanel');
+
+  function setStatus(state) {
+    statusDot.className = 'dot' + (state ? ' ' + state : '');
+  }
+  function showBanner(msg) {
+    banner.textContent = msg;
+    banner.style.display = msg ? 'block' : 'none';
+  }
+  function showSearchMsg(msg) {
+    searchMsg.textContent = msg;
+    searchMsg.style.display = msg ? 'block' : 'none';
+    if (msg) setTimeout(function () { searchMsg.style.display = 'none'; }, 3000);
+  }
+
+  function boundsToQuery() {
+    var b = map.getBounds();
+    var south = Math.max(-90, b.getSouth());
+    var north = Math.min(90, b.getNorth());
+    var west = Math.max(-180, b.getWest());
+    var east = Math.min(180, b.getEast());
+    if (west >= east) { west = -180; east = 180; }
+    return { lamin: south, lomin: west, lamax: north, lomax: east };
+  }
+
+  function fetchAircraft() {
+    if (fetching) return;
+    fetching = true;
+    setStatus('loading');
+    var q = boundsToQuery();
+    var url = 'https://opensky-network.org/api/states/all?lamin=' + q.lamin.toFixed(2) +
+      '&lomin=' + q.lomin.toFixed(2) + '&lamax=' + q.lamax.toFixed(2) + '&lomax=' + q.lomax.toFixed(2);
+
+    fetch(url)
+      .then(function (res) {
+        if (res.status === 429) throw new Error('RATE_LIMIT');
+        if (!res.ok) throw new Error('HTTP_' + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var states = data.states || [];
+        currentData = states.map(function (s) {
+          return {
+            icao24: s[0],
+            callsign: (s[1] || '').trim(),
+            country: s[2],
+            lon: s[5],
+            lat: s[6],
+            baroAlt: s[7],
+            onGround: s[8],
+            velocity: s[9],
+            track: s[10],
+            vrate: s[11],
+            geoAlt: s[13]
+          };
+        }).filter(function (a) { return a.lat != null && a.lon != null; });
+
+        byIcao = {};
+        currentData.forEach(function (a) { byIcao[a.icao24] = a; });
+
+        aircraftLayer.setData(currentData);
+        countStat.textContent = currentData.length;
+        timeStat.textContent = new Date().toLocaleTimeString('pl-PL');
+        setStatus('');
+        showBanner('');
+        backoffMs = 15000;
+
+        if (selectedIcao && byIcao[selectedIcao]) {
+          renderInfo(byIcao[selectedIcao]);
+          aircraftLayer.highlight(byIcao[selectedIcao]);
+        }
+      })
+      .catch(function (err) {
+        setStatus('error');
+        if (err.message === 'RATE_LIMIT') {
+          showBanner('Limit zapytań do OpenSky osiągnięty — zwalniam odświeżanie.');
+          backoffMs = Math.min(backoffMs * 2, 120000);
+        } else {
+          showBanner('Nie udało się pobrać danych lotów. Ponawiam próbę...');
+        }
+      })
+      .finally(function () {
+        fetching = false;
+        lastFetch = Date.now();
+        scheduleNext();
+      });
+  }
+
+  function scheduleNext() {
+    if (timer) clearTimeout(timer);
+    if (!autoRefresh) return;
+    timer = setTimeout(fetchAircraft, backoffMs);
+  }
+
+  var moveDebounce = null;
+  map.on('moveend', function () {
+    if (moveDebounce) clearTimeout(moveDebounce);
+    moveDebounce = setTimeout(function () {
+      if (Date.now() - lastFetch > 4000) fetchAircraft();
+    }, 800);
+  });
+
+  // ---- Info panel / selection ----
+  var selectedIcao = null;
+
+  function renderInfo(ac) {
+    document.getElementById('infoCallsign').textContent = ac.callsign || '(brak sygnału)';
+    document.getElementById('infoCountry').textContent = ac.country || '—';
+    var badge = document.getElementById('infoGroundBadge');
+    if (ac.onGround) {
+      badge.textContent = 'Na ziemi';
+      badge.className = 'ground-badge';
+    } else {
+      badge.textContent = 'W locie';
+      badge.className = 'ground-badge air';
+    }
+    var alt = ac.baroAlt != null ? Math.round(ac.baroAlt) + ' m' : '—';
+    document.getElementById('infoAlt').textContent = alt;
+    var speed = ac.velocity != null ? Math.round(ac.velocity * 3.6) + ' km/h' : '—';
+    document.getElementById('infoSpeed').textContent = speed;
+    document.getElementById('infoHeading').textContent = ac.track != null ? Math.round(ac.track) + '°' : '—';
+    var vrate = ac.vrate != null ? (ac.vrate > 0 ? '+' : '') + ac.vrate.toFixed(1) + ' m/s' : '—';
+    document.getElementById('infoVrate').textContent = vrate;
+    document.getElementById('infoIcao').textContent = ac.icao24 || '—';
+    infoPanel.style.display = 'block';
+  }
+
+  aircraftLayer.onSelect = function (ac) {
+    if (!ac) {
+      selectedIcao = null;
+      aircraftLayer.highlight(null);
+      infoPanel.style.display = 'none';
+      return;
+    }
+    selectedIcao = ac.icao24;
+    aircraftLayer.highlight(ac);
+    renderInfo(ac);
+  };
+
+  document.getElementById('closeInfo').addEventListener('click', function () {
+    selectedIcao = null;
+    aircraftLayer.highlight(null);
+    infoPanel.style.display = 'none';
+  });
+
+  // ---- Search ----
+  function doSearch() {
+    var q = document.getElementById('callsignInput').value.trim().toUpperCase();
+    if (!q) return;
+    var match = currentData.find(function (a) { return a.callsign && a.callsign.toUpperCase().indexOf(q) === 0; });
+    if (match) {
+      map.setView([match.lat, match.lon], Math.max(map.getZoom(), 7));
+      selectedIcao = match.icao24;
+      aircraftLayer.highlight(match);
+      renderInfo(match);
+    } else {
+      showSearchMsg('Nie znaleziono "' + q + '" w widocznym obszarze. Przybliż inny region i spróbuj ponownie.');
+    }
+  }
+  document.getElementById('searchBtn').addEventListener('click', doSearch);
+  document.getElementById('callsignInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  // ---- Refresh toggle ----
+  var refreshBtn = document.getElementById('refreshBtn');
+  refreshBtn.addEventListener('click', function () {
+    autoRefresh = !autoRefresh;
+    refreshBtn.textContent = autoRefresh ? '⏸' : '▶';
+    refreshBtn.classList.toggle('paused', !autoRefresh);
+    refreshBtn.title = autoRefresh ? 'Wstrzymaj automatyczne odświeżanie' : 'Wznów automatyczne odświeżanie';
+    if (autoRefresh) fetchAircraft();
+    else if (timer) clearTimeout(timer);
+  });
+
+  fetchAircraft();
+})();
+</script>
+</body>
+</html>
