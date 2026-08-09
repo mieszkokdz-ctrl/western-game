@@ -10,6 +10,6 @@ export function useVisibleFeed() {
   const { isReported } = useReports();
 
   return useMemo(() => {
-    return [...catalog, ...videos].filter(item => !isBlocked(item.author) && !isReported(item.id));
+    return [...videos, ...catalog].filter(item => !isBlocked(item.author) && !isReported(item.id));
   }, [videos, isBlocked, isReported]);
 }
