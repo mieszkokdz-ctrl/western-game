@@ -13,6 +13,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const ICONS: Partial<Record<keyof MainTabParamList, string>> = {
   Home: '🏠',
   Discover: '🔍',
+  LiveTab: '🔴',
   Inbox: '📥',
   Profile: '👤',
 };
@@ -20,6 +21,7 @@ const ICONS: Partial<Record<keyof MainTabParamList, string>> = {
 const LABELS: Partial<Record<keyof MainTabParamList, string>> = {
   Home: 'Główna',
   Discover: 'Odkrywaj',
+  LiveTab: 'Na żywo',
   Inbox: 'Aktywność',
   Profile: 'Profil',
 };
@@ -58,6 +60,18 @@ export default function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Discover" component={DiscoverScreen} />
+      <Tab.Screen
+        name="LiveTab"
+        component={EmptyScreen}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            e.preventDefault();
+            (navigation.getParent() as NativeStackNavigationProp<RootStackParamList> | undefined)?.navigate(
+              'LiveBroadcast'
+            );
+          },
+        })}
+      />
       <Tab.Screen
         name="CreateTab"
         component={EmptyScreen}
