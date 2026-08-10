@@ -1,7 +1,7 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserProfile } from '../context/UserProfileContext';
@@ -18,6 +18,11 @@ export default function PostScreen() {
   const { username } = useUserProfile();
   const [caption, setCaption] = useState('');
   const [confirmedRights, setConfirmedRights] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  // useState updates are batched, so two clicks in the same tick would both
+  // still see isPublishing as false. A ref mutates synchronously, so it
+  // reliably blocks a second call no matter how close together the taps are.
+  const hasPublishedRef = useRef(false);
 
   const player = useVideoPlayer(route.params.uri, p => {
     p.loop = true;
@@ -25,6 +30,9 @@ export default function PostScreen() {
   });
 
   const handlePublish = () => {
+    if (hasPublishedRef.current) return;
+    hasPublishedRef.current = true;
+    setIsPublishing(true);
     addVideo(route.params.uri, caption, username);
     navigation.reset({ index: 0, routes: [{ name: 'MainTabs', params: { screen: 'Home' } }] });
   };
@@ -76,9 +84,9 @@ export default function PostScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.publishButton, !confirmedRights && styles.publishButtonDisabled]}
+            style={[styles.publishButton, (!confirmedRights || isPublishing) && styles.publishButtonDisabled]}
             onPress={handlePublish}
-            disabled={!confirmedRights}
+            disabled={!confirmedRights || isPublishing}
             testID="post-publish-button"
           >
             <Text style={styles.publishButtonText}>Opublikuj</Text>
