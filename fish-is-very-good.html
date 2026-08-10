@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fish is Very Good</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#021a2e; font-family:Georgia, 'Segoe UI', serif; }
+  #game { display:block; width:100vw; height:100vh; touch-action:none; cursor:crosshair; }
+
+  #hud {
+    position:fixed; top:14px; left:14px; z-index:10;
+    color:#eaffff; text-shadow:0 2px 6px rgba(0,0,0,0.6);
+    pointer-events:none; user-select:none;
+  }
+  #hud .score { font-size:28px; font-weight:bold; letter-spacing:1px; }
+  #hud .sub { font-size:14px; opacity:0.85; margin-top:2px; }
+
+  #best {
+    position:fixed; top:14px; right:14px; z-index:10;
+    color:#ffd76a; text-shadow:0 2px 6px rgba(0,0,0,0.6);
+    font-size:15px; pointer-events:none; user-select:none; text-align:right;
+  }
+
+  .overlay {
+    position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center;
+    background:radial-gradient(ellipse at 50% 45%, rgba(2,30,50,0.92) 0%, rgba(1,12,22,0.97) 100%);
+    color:#eaffff; padding:20px;
+  }
+  .overlay.hidden { display:none; }
+  .title {
+    font-size:clamp(34px, 8vw, 64px); font-weight:bold; color:#7fe3ff;
+    text-shadow:0 0 30px rgba(70,210,255,0.6), 0 3px 0 #063; letter-spacing:2px;
+    margin-bottom:6px;
+  }
+  .title .fish-emoji { display:inline-block; transform:scaleX(-1); }
+  .subtitle { font-size:clamp(14px, 3vw, 18px); color:#a8d8e8; margin-bottom:28px; letter-spacing:1px; }
+  .stat-line { font-size:18px; color:#ffd76a; margin-bottom:6px; }
+  .stat-line b { color:#fff; }
+  button.play-btn {
+    margin-top:22px; padding:14px 38px; font-size:19px; font-weight:bold;
+    color:#04263a; background:linear-gradient(180deg,#8ff0ff,#3fb8e0);
+    border:none; border-radius:30px; cursor:pointer; letter-spacing:1px;
+    box-shadow:0 6px 0 #1a7fa0, 0 8px 18px rgba(0,0,0,0.4);
+    transition:transform 0.08s ease;
+  }
+  button.play-btn:active { transform:translateY(4px); box-shadow:0 2px 0 #1a7fa0; }
+  .howto { margin-top:26px; font-size:13px; color:#7fb8cc; max-width:420px; line-height:1.6; }
+  .howto b { color:#bfe8f5; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud" style="display:none;">
+  <div class="score">Rozmiar: <span id="scoreVal">0</span></div>
+  <div class="sub">Zjedzone rybki: <span id="eatenVal">0</span></div>
+</div>
+<div id="best" style="display:none;">Rekord: <span id="bestVal">0</span></div>
+
+<div class="overlay" id="startScreen">
+  <div class="title"><span class="fish-emoji">🐟</span> FISH IS VERY GOOD</div>
+  <div class="subtitle">jedz mniejsze rybki, uciekaj przed większymi</div>
+  <div class="howto">
+    <b>Sterowanie:</b> ruszaj myszką lub palcem, żeby popłynąć w tym kierunku.<br>
+    Zjadaj rybki mniejsze od siebie, żeby urosnąć. Duże rybki cię zjedzą — uciekaj!
+  </div>
+  <button class="play-btn" id="startBtn">ZACZNIJ ŁOWIĆ</button>
+</div>
+
+<div class="overlay hidden" id="gameOverScreen">
+  <div class="title">RYBA CIĘ ZJADŁA</div>
+  <div class="stat-line">Osiągnięty rozmiar: <b id="finalScore">0</b></div>
+  <div class="stat-line">Zjedzone rybki: <b id="finalEaten">0</b></div>
+  <div class="stat-line" id="newBestLine" style="display:none; color:#7fe3ff;">🏆 NOWY REKORD!</div>
+  <button class="play-btn" id="retryBtn">SPRÓBUJ PONOWNIE</button>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const WORLD_W = 3200, WORLD_H = 2000;
+  const BEST_KEY = 'fishIsVeryGood_best';
+
+  const hud = document.getElementById('hud');
+  const bestEl = document.getElementById('best');
+  const scoreVal = document.getElementById('scoreVal');
+  const eatenVal = document.getElementById('eatenVal');
+  const bestVal = document.getElementById('bestVal');
+  const startScreen = document.getElementById('startScreen');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const finalScore = document.getElementById('finalScore');
+  const finalEaten = document.getElementById('finalEaten');
+  const newBestLine = document.getElementById('newBestLine');
+  const startBtn = document.getElementById('startBtn');
+  const retryBtn = document.getElementById('retryBtn');
+
+  let best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10);
+
+  // ---------- helpers ----------
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const dist2 = (x1, y1, x2, y2) => { const dx = x1 - x2, dy = y1 - y2; return dx*dx + dy*dy; };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  const PALETTES = [
+    ['#ff7043', '#ffab91'], ['#ffca28', '#fff59d'], ['#66bb6a', '#c5e1a5'],
+    ['#ab47bc', '#e1bee7'], ['#26c6da', '#b2ebf2'], ['#ec407a', '#f8bbd0'],
+    ['#7e57c2', '#d1c4e9'], ['#8d6e63', '#d7ccc8']
+  ];
+
+  function makeFish(size, x, y, isPlayer=false) {
+    const pal = PALETTES[(Math.random() * PALETTES.length) | 0];
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    return {
+      x, y, size,
+      vx: dir * rand(0.4, 1.2), vy: rand(-0.3, 0.3),
+      facing: dir,
+      color: pal[0], fin: pal[1],
+      isPlayer,
+      wobble: Math.random() * Math.PI * 2,
+      turnTimer: rand(1, 3),
+      alive: true,
+    };
+  }
+
+  // ---------- game state ----------
+  let player, fishes, bubbles, eaten, running, mouse;
+  let camX = 0, camY = 0;
+
+  function spawnFishAwayFrom(px, py, minDist) {
+    let x, y, tries = 0;
+    do {
+      x = rand(40, WORLD_W - 40);
+      y = rand(40, WORLD_H - 40);
+      tries++;
+    } while (dist2(x, y, px, py) < minDist * minDist && tries < 20);
+    // size distribution: mostly small, occasionally big
+    const r = Math.random();
+    let size;
+    if (r < 0.55) size = rand(6, 12);
+    else if (r < 0.85) size = rand(12, 22);
+    else size = rand(22, 40);
+    return makeFish(size, x, y);
+  }
+
+  function makeBubbles(n) {
+    const arr = [];
+    for (let i = 0; i < n; i++) {
+      arr.push({
+        x: rand(0, WORLD_W), y: rand(0, WORLD_H),
+        r: rand(1.5, 4), speed: rand(0.15, 0.5), drift: rand(-0.1, 0.1)
+      });
+    }
+    return arr;
+  }
+
+  function initGame() {
+    player = makeFish(14, WORLD_W / 2, WORLD_H / 2, true);
+    fishes = [];
+    for (let i = 0; i < 60; i++) fishes.push(spawnFishAwayFrom(player.x, player.y, 150));
+    bubbles = makeBubbles(50);
+    eaten = 0;
+    running = true;
+    mouse = { x: 0, y: 0, active: false };
+    updateHud();
+  }
+
+  function updateHud() {
+    scoreVal.textContent = Math.round(player.size);
+    eatenVal.textContent = eaten;
+    bestVal.textContent = best;
+  }
+
+  // ---------- input ----------
+  let targetScreenX = null, targetScreenY = null;
+  canvas.addEventListener('mousemove', e => {
+    targetScreenX = e.clientX; targetScreenY = e.clientY;
+  });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    targetScreenX = t.clientX; targetScreenY = t.clientY;
+  }, { passive: false });
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    targetScreenX = t.clientX; targetScreenY = t.clientY;
+  }, { passive: false });
+
+  // ---------- update loop ----------
+  let lastT = performance.now();
+
+  function fishSpeed(size) {
+    // bigger fish are slightly slower relative-max-speed, but small fish are jittery
+    return clamp(3.4 - size * 0.02, 1.2, 3.4);
+  }
+
+  function updatePlayer(dt) {
+    if (targetScreenX !== null) {
+      const worldTX = camX + targetScreenX;
+      const worldTY = camY + targetScreenY;
+      const dx = worldTX - player.x, dy = worldTY - player.y;
+      const d = Math.hypot(dx, dy);
+      if (d > 4) {
+        const spd = fishSpeed(player.size);
+        player.vx += (dx / d) * spd * 0.02;
+        player.vy += (dy / d) * spd * 0.02;
+      }
+    }
+    player.vx *= 0.94; player.vy *= 0.94;
+    const maxSpd = fishSpeed(player.size);
+    const sp = Math.hypot(player.vx, player.vy);
+    if (sp > maxSpd) { player.vx = player.vx / sp * maxSpd; player.vy = player.vy / sp * maxSpd; }
+    player.x = clamp(player.x + player.vx * dt, player.size, WORLD_W - player.size);
+    player.y = clamp(player.y + player.vy * dt, player.size, WORLD_H - player.size);
+    if (Math.abs(player.vx) > 0.05) player.facing = player.vx > 0 ? 1 : -1;
+    player.wobble += dt * 0.2 * (0.5 + sp);
+  }
+
+  function updateFish(f, dt) {
+    f.turnTimer -= dt / 60;
+    if (f.turnTimer <= 0) {
+      f.turnTimer = rand(1, 3);
+      const spd = fishSpeed(f.size);
+      f.vx = rand(-1, 1) * spd;
+      f.vy = rand(-0.5, 0.5) * spd;
+    }
+    // flee from player if player is bigger and close
+    if (player.size > f.size * 1.05) {
+      const dx = f.x - player.x, dy = f.y - player.y;
+      const d2 = dx*dx + dy*dy;
+      const dangerR = 220;
+      if (d2 < dangerR * dangerR) {
+        const d = Math.sqrt(d2) || 1;
+        const spd = fishSpeed(f.size) * 1.4;
+        f.vx += (dx / d) * spd * 0.05;
+        f.vy += (dy / d) * spd * 0.05;
+      }
+    } else if (f.size > player.size * 1.05) {
+      // bigger fish sometimes hunts player
+      const dx = player.x - f.x, dy = player.y - f.y;
+      const d2 = dx*dx + dy*dy;
+      const huntR = 260;
+      if (d2 < huntR * huntR) {
+        const d = Math.sqrt(d2) || 1;
+        const spd = fishSpeed(f.size);
+        f.vx += (dx / d) * spd * 0.03;
+        f.vy += (dy / d) * spd * 0.03;
+      }
+    }
+    const maxSpd = fishSpeed(f.size);
+    const sp = Math.hypot(f.vx, f.vy);
+    if (sp > maxSpd) { f.vx = f.vx / sp * maxSpd; f.vy = f.vy / sp * maxSpd; }
+    f.x += f.vx * dt; f.y += f.vy * dt;
+    if (f.x < f.size || f.x > WORLD_W - f.size) f.vx *= -1;
+    if (f.y < f.size || f.y > WORLD_H - f.size) f.vy *= -1;
+    f.x = clamp(f.x, f.size, WORLD_W - f.size);
+    f.y = clamp(f.y, f.size, WORLD_H - f.size);
+    if (Math.abs(f.vx) > 0.03) f.facing = f.vx > 0 ? 1 : -1;
+    f.wobble += dt * 0.2 * (0.5 + sp);
+  }
+
+  function checkCollisions() {
+    for (const f of fishes) {
+      if (!f.alive) continue;
+      const rr = (player.size + f.size) * 0.72;
+      if (dist2(player.x, player.y, f.x, f.y) < rr * rr) {
+        if (player.size > f.size * 1.08) {
+          // eat it
+          f.alive = false;
+          player.size += f.size * 0.18;
+          eaten++;
+          spawnEatPop(f.x, f.y, f.color);
+        } else if (f.size > player.size * 1.08) {
+          endGame();
+          return;
+        }
+      }
+    }
+    fishes = fishes.filter(f => f.alive);
+    while (fishes.length < 60) fishes.push(spawnFishAwayFrom(player.x, player.y, 260));
+  }
+
+  let pops = [];
+  function spawnEatPop(x, y, color) {
+    pops.push({ x, y, r: 4, alpha: 1, color });
+  }
+
+  function endGame() {
+    running = false;
+    if (Math.round(player.size) > best) {
+      best = Math.round(player.size);
+      localStorage.setItem(BEST_KEY, String(best));
+      newBestLine.style.display = 'block';
+    } else {
+      newBestLine.style.display = 'none';
+    }
+    finalScore.textContent = Math.round(player.size);
+    finalEaten.textContent = eaten;
+    gameOverScreen.classList.remove('hidden');
+    hud.style.display = 'none';
+    bestEl.style.display = 'none';
+  }
+
+  function updateBubbles(dt) {
+    for (const b of bubbles) {
+      b.y -= b.speed * dt;
+      b.x += Math.sin(b.y * 0.01) * b.drift * dt;
+      if (b.y < -10) { b.y = WORLD_H + 10; b.x = rand(0, WORLD_W); }
+    }
+  }
+
+  // ---------- drawing ----------
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#0a4d78');
+    g.addColorStop(0.5, '#053455');
+    g.addColorStop(1, '#021a2e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // light rays
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = '#bfe8ff';
+    for (let i = 0; i < 6; i++) {
+      const rx = ((i * 540 - camX * 0.3) % (W + 600)) - 300;
+      ctx.beginPath();
+      ctx.moveTo(rx, 0);
+      ctx.lineTo(rx + 120, 0);
+      ctx.lineTo(rx - 60, H);
+      ctx.lineTo(rx - 220, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawBubbles() {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = '#dffcff';
+    ctx.lineWidth = 1;
+    for (const b of bubbles) {
+      const sx = b.x - camX, sy = b.y - camY;
+      if (sx < -10 || sx > W + 10 || sy < -10 || sy > H + 10) continue;
+      ctx.beginPath();
+      ctx.arc(sx, sy, b.r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFish(f) {
+    const sx = f.x - camX, sy = f.y - camY;
+    if (sx < -f.size - 40 || sx > W + f.size + 40 || sy < -f.size - 40 || sy > H + f.size + 40) return;
+    const s = f.size;
+    const wob = Math.sin(f.wobble) * 0.15;
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.scale(f.facing, 1);
+    ctx.rotate(wob * 0.3);
+
+    // tail
+    ctx.fillStyle = f.fin;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.9, 0);
+    ctx.lineTo(-s * 1.5, -s * 0.55);
+    ctx.lineTo(-s * 1.5, s * 0.55);
+    ctx.closePath();
+    ctx.fill();
+
+    // body
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s, s * 0.62, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // top fin
+    ctx.fillStyle = f.fin;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.1, -s * 0.55);
+    ctx.lineTo(s * 0.25, -s * 1.05);
+    ctx.lineTo(s * 0.45, -s * 0.5);
+    ctx.closePath();
+    ctx.fill();
+
+    // eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(s * 0.48, -s * 0.08, s * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(s * 0.53, -s * 0.08, s * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    if (f.isPlayer) {
+      ctx.save();
+      ctx.font = 'bold 12px Georgia, serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.textAlign = 'center';
+      ctx.fillText('TY', sx, sy - s - 10);
+      ctx.restore();
+    }
+  }
+
+  function drawPops(dt) {
+    ctx.save();
+    for (const p of pops) {
+      p.r += dt * 0.6;
+      p.alpha -= dt * 0.04;
+      const sx = p.x - camX, sy = p.y - camY;
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(sx, sy, p.r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    pops = pops.filter(p => p.alpha > 0);
+  }
+
+  function draw() {
+    drawBackground();
+    drawBubbles();
+    const sorted = [...fishes, player].sort((a, b) => a.size - b.size);
+    for (const f of sorted) drawFish(f);
+    drawPops(1);
+  }
+
+  // ---------- main loop ----------
+  function loop(t) {
+    const dt = clamp((t - lastT) / 16.67, 0, 3);
+    lastT = t;
+
+    if (running) {
+      updatePlayer(dt);
+      for (const f of fishes) updateFish(f, dt);
+      checkCollisions();
+      updateBubbles(dt);
+      camX = clamp(player.x - W / 2, 0, Math.max(0, WORLD_W - W));
+      camY = clamp(player.y - H / 2, 0, Math.max(0, WORLD_H - H));
+      updateHud();
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- start / retry ----------
+  function startGame() {
+    initGame();
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    hud.style.display = 'block';
+    bestEl.style.display = 'block';
+  }
+
+  startBtn.addEventListener('click', startGame);
+  retryBtn.addEventListener('click', startGame);
+
+  bestVal.textContent = best;
+
+  // idle background animation before first start
+  player = makeFish(14, WORLD_W / 2, WORLD_H / 2, true);
+  fishes = [];
+  for (let i = 0; i < 40; i++) fishes.push(spawnFishAwayFrom(player.x, player.y, 150));
+  bubbles = makeBubbles(50);
+  running = false;
+
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
