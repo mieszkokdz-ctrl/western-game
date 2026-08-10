@@ -58,18 +58,6 @@ export default function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Discover" component={DiscoverScreen} />
       <Tab.Screen
-        name="LiveTab"
-        component={EmptyScreen}
-        listeners={({ navigation }) => ({
-          tabPress: e => {
-            e.preventDefault();
-            (navigation.getParent() as NativeStackNavigationProp<RootStackParamList> | undefined)?.navigate(
-              'LiveBroadcast'
-            );
-          },
-        })}
-      />
-      <Tab.Screen
         name="CreateTab"
         component={EmptyScreen}
         options={{
@@ -86,6 +74,18 @@ export default function MainTabs() {
             e.preventDefault();
             (navigation.getParent() as NativeStackNavigationProp<RootStackParamList> | undefined)?.navigate(
               'RecordChoice'
+            );
+          },
+        })}
+      />
+      <Tab.Screen
+        name="LiveTab"
+        component={EmptyScreen}
+        listeners={({ navigation }) => ({
+          tabPress: e => {
+            e.preventDefault();
+            (navigation.getParent() as NativeStackNavigationProp<RootStackParamList> | undefined)?.navigate(
+              'LiveBroadcast'
             );
           },
         })}

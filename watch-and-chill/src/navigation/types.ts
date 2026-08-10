@@ -3,8 +3,8 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type MainTabParamList = {
   Home: undefined;
   Discover: undefined;
-  LiveTab: undefined;
   CreateTab: undefined;
+  LiveTab: undefined;
   Profile: undefined;
 };
 
