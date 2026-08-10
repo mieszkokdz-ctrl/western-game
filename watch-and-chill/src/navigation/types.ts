@@ -5,7 +5,6 @@ export type MainTabParamList = {
   Discover: undefined;
   LiveTab: undefined;
   CreateTab: undefined;
-  Inbox: undefined;
   Profile: undefined;
 };
 

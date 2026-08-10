@@ -3,7 +3,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DiscoverScreen from '../screens/DiscoverScreen';
 import HomeScreen from '../screens/HomeScreen';
-import InboxScreen from '../screens/InboxScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { colors } from '../theme/colors';
 import type { MainTabParamList, RootStackParamList } from './types';
@@ -14,7 +13,6 @@ const ICONS: Partial<Record<keyof MainTabParamList, string>> = {
   Home: '🏠',
   Discover: '🔍',
   LiveTab: '🔴',
-  Inbox: '📥',
   Profile: '👤',
 };
 
@@ -22,7 +20,6 @@ const LABELS: Partial<Record<keyof MainTabParamList, string>> = {
   Home: 'Główna',
   Discover: 'Odkrywaj',
   LiveTab: 'Na żywo',
-  Inbox: 'Aktywność',
   Profile: 'Profil',
 };
 
@@ -93,7 +90,6 @@ export default function MainTabs() {
           },
         })}
       />
-      <Tab.Screen name="Inbox" component={InboxScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
