@@ -555,6 +555,9 @@ html, body {
   const DAILY_STREAK_KEY = 'fishIsVeryGood_dailyStreak';
   const DAILY_LAST_CLAIM_KEY = 'fishIsVeryGood_dailyLastClaim';
   const HIPER_ROD_KEY = 'fishIsVeryGood_hasHiperRod';
+  const HIPER_REEL_KEY = 'fishIsVeryGood_hasHiperReel';
+  const HIPER_BAIT_KEY = 'fishIsVeryGood_hasHiperBait';
+  const WEEK7_COUNT_KEY = 'fishIsVeryGood_week7Count';
   const OWNED_BOATS_KEY = 'fishIsVeryGood_ownedBoats';
   const EQUIPPED_BOAT_KEY = 'fishIsVeryGood_equippedBoat';
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -650,6 +653,10 @@ html, body {
   let dailyStreak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
   let dailyLastClaim = localStorage.getItem(DAILY_LAST_CLAIM_KEY) || null;
   let hasHiperRod = localStorage.getItem(HIPER_ROD_KEY) === '1';
+  let hasHiperReel = localStorage.getItem(HIPER_REEL_KEY) === '1';
+  let hasHiperBait = localStorage.getItem(HIPER_BAIT_KEY) === '1';
+  let week7Count = parseInt(localStorage.getItem(WEEK7_COUNT_KEY) || '0', 10);
+  let lastClaimRewardText = '';
 
   let gablota = [];
   try {
@@ -719,8 +726,18 @@ html, body {
       desc:'Wirująca metalowa błystka — błyszczy jak łuski, kusi nawet złotą rybkę.',
       favors:{ 'Złota Rybka':3.6, 'Szczupak':1.4 }, biteMult:0.95 },
   ];
+  const HIPER_BAIT = {
+    id:'hiper', name:'Hiper Przynęta', icon:'🌟', price:0,
+    desc:'Legendarna przynęta ze specjalnej nagrody — kusi każdą rzadką rybę na świecie.',
+    favors:{ 'Karp':2.5, 'Szczupak':2.5, 'Sum':2.5, 'Złota Rybka':2.5, 'Dorsz':2.5, 'Jesiotr':2.5,
+      'Głowacica':2.5, 'Łosoś Bałtycki':2.5, 'Tucunaré':2.5, 'Arapaima':2.5 },
+    biteMult:0.75,
+  };
+  function availableBaits() {
+    return hasHiperBait ? BAITS.concat([HIPER_BAIT]) : BAITS;
+  }
   function currentBait() {
-    return BAITS.find(b => b.id === equippedBait) || BAITS[0];
+    return availableBaits().find(b => b.id === equippedBait) || BAITS[0];
   }
 
   const BOATS = [
@@ -820,7 +837,9 @@ html, body {
       : rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
     const reelLvl = upgrades.reel || 0;
     const reelMax = UPGRADE_DEFS.find(d => d.key === 'reel').costs.length;
-    reelEquippedDesc.textContent = 'Poziom ' + reelLvl + '/' + reelMax + ' — więcej czasu na zacięcie i szybsze zwijanie.';
+    reelEquippedDesc.textContent = hasHiperReel
+      ? '🌀 Hiper Kołowrotek — nagroda za 2. serię 7-dniowych nagród. Najlepszy czas na zacięcie i najszybsze zwijanie.'
+      : 'Poziom ' + reelLvl + '/' + reelMax + ' — więcej czasu na zacięcie i szybsze zwijanie.';
     for (const def of UPGRADE_DEFS) {
       const lvl = upgrades[def.key] || 0;
       const dotsEl = document.getElementById(def.descKey);
@@ -874,8 +893,8 @@ html, body {
   function renderBaitScreen() {
     updateCoinsUI();
     baitGrid.innerHTML = '';
-    for (const bait of BAITS) {
-      const owned = ownedBaits.includes(bait.id);
+    for (const bait of availableBaits()) {
+      const owned = bait.id === 'hiper' || ownedBaits.includes(bait.id);
       const equipped = equippedBait === bait.id;
       const card = document.createElement('div');
       card.className = 'bait-card-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
@@ -909,9 +928,9 @@ html, body {
   }
 
   function selectOrBuyBait(id) {
-    const bait = BAITS.find(b => b.id === id);
+    const bait = availableBaits().find(b => b.id === id);
     if (!bait) return;
-    if (!ownedBaits.includes(id)) {
+    if (id !== 'hiper' && !ownedBaits.includes(id)) {
       if (coins < bait.price) return;
       coins -= bait.price;
       ownedBaits.push(id);
@@ -1096,6 +1115,7 @@ html, body {
     updateCoinsUI();
     const claimable = canClaimToday();
     const displayDay = claimable ? nextStreakDay() : dailyStreak;
+    const upcomingWeek7Label = week7RewardLabel(week7Count + 1);
     dailyGrid.innerHTML = '';
     for (let i = 1; i <= 7; i++) {
       const card = document.createElement('div');
@@ -1116,26 +1136,31 @@ html, body {
       if (i === 7) {
         const extra = document.createElement('div');
         extra.className = 'daily-reward-extra';
-        extra.textContent = 'Hiper Wędka';
+        extra.textContent = upcomingWeek7Label;
         card.appendChild(extra);
       }
       dailyGrid.appendChild(card);
     }
     if (claimable) {
       dailyStatusText.textContent = displayDay === 7
-        ? 'Dzień 7 z 7 — odbierz wielką nagrodę i Hiper Wędkę!'
+        ? 'Dzień 7 z 7 — odbierz wielką nagrodę: ' + upcomingWeek7Label + '!'
         : 'Dzień ' + displayDay + ' z 7 — odbierz dzisiejszą nagrodę!';
       dailyClaimBtn.textContent = displayDay === 7
-        ? 'Odbierz — +150 🪙 i Hiper Wędkę 🎣'
+        ? 'Odbierz — +150 🪙 i ' + upcomingWeek7Label
         : 'Odbierz nagrodę — +' + DAILY_REWARDS[displayDay - 1] + ' 🪙';
       dailyClaimBtn.disabled = false;
     } else {
-      dailyStatusText.textContent = hasHiperRod
-        ? 'Dzisiejsza nagroda odebrana. Hiper Wędka jest już Twoja! Wróć jutro po kolejną serię.'
-        : 'Dzisiejsza nagroda odebrana. Wróć jutro po kolejną!';
+      dailyStatusText.textContent = lastClaimRewardText || 'Dzisiejsza nagroda odebrana. Wróć jutro po kolejną!';
       dailyClaimBtn.textContent = 'Odebrano — wróć jutro';
       dailyClaimBtn.disabled = true;
     }
+  }
+
+  function week7RewardLabel(n) {
+    if (n === 1) return 'Hiper Wędka';
+    if (n === 2) return 'Hiper Kołowrotek';
+    if (n === 3) return 'Hiper Przynęta';
+    return '+200 monet';
   }
 
   function claimDaily() {
@@ -1148,11 +1173,30 @@ html, body {
     localStorage.setItem(COINS_KEY, String(coins));
     localStorage.setItem(DAILY_STREAK_KEY, String(dailyStreak));
     localStorage.setItem(DAILY_LAST_CLAIM_KEY, dailyLastClaim);
-    if (day === 7 && !hasHiperRod) {
-      hasHiperRod = true;
-      localStorage.setItem(HIPER_ROD_KEY, '1');
+    lastClaimRewardText = '';
+    if (day === 7) {
+      week7Count++;
+      localStorage.setItem(WEEK7_COUNT_KEY, String(week7Count));
+      if (week7Count === 1) {
+        hasHiperRod = true;
+        localStorage.setItem(HIPER_ROD_KEY, '1');
+        lastClaimRewardText = '🎣 Zdobyto Hiper Wędkę!';
+      } else if (week7Count === 2) {
+        hasHiperReel = true;
+        localStorage.setItem(HIPER_REEL_KEY, '1');
+        lastClaimRewardText = '🌀 Zdobyto Hiper Kołowrotek!';
+      } else if (week7Count === 3) {
+        hasHiperBait = true;
+        localStorage.setItem(HIPER_BAIT_KEY, '1');
+        lastClaimRewardText = '🌟 Zdobyto Hiper Przynętę!';
+      } else {
+        coins += 200;
+        localStorage.setItem(COINS_KEY, String(coins));
+        lastClaimRewardText = '🪙 Bonus: +200 monet!';
+      }
       renderShop();
     }
+    updateCoinsUI();
     updateDailyBadge();
     renderDaily();
   }
@@ -1346,7 +1390,8 @@ html, body {
   const CHARGE_OMEGA = 2 * Math.PI / 1.3;
   let waitDuration = 2;
   const BITE_WINDOW_BASE = 0.9;
-  function biteWindow() { return BITE_WINDOW_BASE + 0.25 * (upgrades.reel || 0); }
+  function effectiveReelLevel() { return hasHiperReel ? 5 : (upgrades.reel || 0); }
+  function biteWindow() { return BITE_WINDOW_BASE + 0.25 * effectiveReelLevel(); }
 
   let bobber = { x:0, y:0 };
   let bobberSwing = 0;
@@ -1645,7 +1690,7 @@ html, body {
     const easeSpeed = 1.3 + fish.erratic * 2.4;
     fishY += (fishTargetY - fishY) * clamp(easeSpeed * dt, 0, 1);
 
-    const lift = 2.7 + 0.35 * (upgrades.reel || 0), gravity = 1.9, friction = Math.pow(0.05, dt);
+    const lift = 2.7 + 0.35 * effectiveReelLevel(), gravity = 1.9, friction = Math.pow(0.05, dt);
     if (holding) catchVel -= lift * dt; else catchVel += gravity * dt;
     catchVel *= friction;
     catchVel = clamp(catchVel, -1.6, 1.6);
@@ -1924,12 +1969,14 @@ html, body {
     ctx.save();
     ctx.translate(g.reel.x, g.reel.y);
     const reelLvl = clamp(upgrades.reel || 0, 0, REEL_RING_COLORS.length - 1);
-    const ringColor = REEL_RING_COLORS[reelLvl];
+    const ringColor = hasHiperReel
+      ? 'hsl(' + ((performance.now() * 0.08) % 360).toFixed(0) + ',85%,65%)'
+      : REEL_RING_COLORS[reelLvl];
     if (ringColor) {
       ctx.save();
       ctx.strokeStyle = ringColor;
-      ctx.lineWidth = 2 + reelLvl * 0.5;
-      if (reelLvl >= 3) { ctx.shadowColor = ringColor; ctx.shadowBlur = 10; }
+      ctx.lineWidth = hasHiperReel ? 4 : (2 + reelLvl * 0.5);
+      if (hasHiperReel || reelLvl >= 3) { ctx.shadowColor = ringColor; ctx.shadowBlur = hasHiperReel ? 14 : 10; }
       ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
