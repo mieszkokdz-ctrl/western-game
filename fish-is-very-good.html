@@ -78,6 +78,25 @@ html, body {
 #best .eyebrow { font-size:10px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--foam-dim); }
 #best .val { font-family:'Baloo Deep', 'Reef Sans', sans-serif; font-size:22px; font-weight:800; color:var(--sun); font-variant-numeric:tabular-nums; }
 
+#playerTag {
+  position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10;
+  padding:8px 16px; border-radius:999px;
+  font-size:12px; font-weight:700; color:var(--foam-dim);
+  pointer-events:none; user-select:none; white-space:nowrap;
+}
+#playerTag span { color:var(--foam); }
+
+.login-card { margin-top:8px; margin-bottom:8px; padding:18px 20px; border-radius:18px; width:min(320px, 86vw); }
+.login-input {
+  width:100%; padding:13px 16px; border-radius:12px; border:1px solid rgba(255,255,255,0.16);
+  background:rgba(4,16,25,0.5); color:var(--foam);
+  font-family:'Reef Sans', sans-serif; font-size:15px; font-weight:600;
+  outline:none; transition:border-color 0.15s ease;
+}
+.login-input::placeholder { color:var(--foam-dim); font-weight:400; }
+.login-input:focus { border-color:var(--sun); }
+.login-error { margin-top:8px; font-size:12px; font-weight:600; color:var(--coral); }
+
 #controls {
   position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:15;
   display:flex; flex-direction:column; align-items:center; gap:12px;
@@ -328,6 +347,8 @@ html, body {
 
 <canvas id="game"></canvas>
 
+<div id="playerTag" class="glass" style="display:none;">🎣 <span id="playerNameVal">Wędkarz</span></div>
+
 <div id="hud" class="glass" style="display:none;">
   <div class="eyebrow">Złowione</div>
   <div class="score"><span id="caughtVal">0</span></div>
@@ -477,8 +498,19 @@ html, body {
   </div>
 </div>
 
-<div class="overlay" id="startScreen">
+<div class="overlay" id="loginScreen">
   <div class="eyebrow-tag">gra przeglądarkowa &middot; wędkarstwo</div>
+  <div class="title"><span class="fish-emoji">🐟</span> FISH IS VERY GOOD</div>
+  <div class="subtitle">Podaj swój pseudonim wędkarza — postępy, monety i gablota trofeów będą zapisane na tym urządzeniu pod tym imieniem.</div>
+  <div class="login-card glass">
+    <input type="text" id="loginInput" class="login-input" placeholder="Twój pseudonim" maxlength="18" autocomplete="off" />
+    <div class="login-error" id="loginError" style="display:none;">Podaj pseudonim (min. 2 znaki).</div>
+  </div>
+  <button class="btn btn-gold" id="loginBtn">Zaloguj się</button>
+</div>
+
+<div class="overlay hidden" id="startScreen">
+  <div class="eyebrow-tag" id="startEyebrow">gra przeglądarkowa &middot; wędkarstwo</div>
   <div class="title"><span class="fish-emoji">🐟</span> FISH IS VERY GOOD</div>
   <div class="subtitle">Zarzuć linkę, poczekaj na branie i zwiń żyłkę zanim ryba się urwie. Im rzadszy gatunek, tym trudniej go utrzymać.</div>
   <div class="howto glass">
@@ -521,6 +553,7 @@ html, body {
   const DAILY_STREAK_KEY = 'fishIsVeryGood_dailyStreak';
   const DAILY_LAST_CLAIM_KEY = 'fishIsVeryGood_dailyLastClaim';
   const HIPER_ROD_KEY = 'fishIsVeryGood_hasHiperRod';
+  const PLAYER_NAME_KEY = 'fishIsVeryGood_playerName';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -535,6 +568,13 @@ html, body {
   const actionBtn = document.getElementById('actionBtn');
   const startScreen = document.getElementById('startScreen');
   const startBtn = document.getElementById('startBtn');
+  const startEyebrow = document.getElementById('startEyebrow');
+  const loginScreen = document.getElementById('loginScreen');
+  const loginInput = document.getElementById('loginInput');
+  const loginError = document.getElementById('loginError');
+  const loginBtn = document.getElementById('loginBtn');
+  const playerTag = document.getElementById('playerTag');
+  const playerNameVal = document.getElementById('playerNameVal');
   const toast = document.getElementById('catchToast');
   const toastEyebrow = document.getElementById('toastEyebrow');
   const toastName = document.getElementById('toastName');
@@ -599,6 +639,7 @@ html, body {
   let dailyStreak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
   let dailyLastClaim = localStorage.getItem(DAILY_LAST_CLAIM_KEY) || null;
   let hasHiperRod = localStorage.getItem(HIPER_ROD_KEY) === '1';
+  let playerName = localStorage.getItem(PLAYER_NAME_KEY) || '';
 
   let gablota = [];
   try {
@@ -1400,6 +1441,29 @@ html, body {
   document.addEventListener('keyup', e => {
     if (e.code === 'Space') onRelease();
   });
+
+  function submitLogin() {
+    const name = loginInput.value.trim();
+    if (name.length < 2) {
+      loginError.style.display = 'block';
+      loginInput.focus();
+      return;
+    }
+    playerName = name.slice(0, 18);
+    localStorage.setItem(PLAYER_NAME_KEY, playerName);
+    loginScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    startEyebrow.textContent = 'witaj, ' + playerName + '!';
+    playerNameVal.textContent = playerName;
+    playerTag.style.display = 'block';
+  }
+  loginBtn.addEventListener('click', submitLogin);
+  loginInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitLogin();
+    loginError.style.display = 'none';
+  });
+  if (playerName) loginInput.value = playerName;
+  loginInput.focus();
 
   startBtn.addEventListener('click', () => {
     started = true;
