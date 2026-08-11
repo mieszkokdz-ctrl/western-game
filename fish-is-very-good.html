@@ -653,6 +653,11 @@ html, body {
     { name:'Jesiotr',      color:'#8a9494', fin:'#525a5a', minKg:8.00, maxKg:35.0, weight:0.6, erratic:0.60, zone:0.16, glow:true, rare:true, value:160, locations:['jezioro'] },
     { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'] },
     { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
+    { name:'Lin',           color:'#6a8a4a', fin:'#3f5a2a', minKg:0.30, maxKg:1.20, weight:22,  erratic:0.22, zone:0.29, rare:false, value:6,  locations:['jezioro','rzeka'] },
+    { name:'Pirania',       color:'#c9524a', fin:'#7a2a24', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'] },
+    { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
+    { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
+    { name:'Arapaima',      color:'#a85050', fin:'#5a2424', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:220, locations:['egzotyka'] },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -698,16 +703,19 @@ html, body {
 
   const LOCATIONS = [
     { id:'jezioro', name:'Jezioro Leśne', icon:'🌲', price:0,
-      desc:'Karpie, szczupaki i złota rybka — a w głębinach podobno czai się legendarny jesiotr.' },
+      desc:'Karpie, szczupaki, liny i złota rybka — a w głębinach podobno czai się legendarny jesiotr.' },
     { id:'rzeka', name:'Rzeka Górska', icon:'⛰️', price:150,
       desc:'Płotki, okonie, szczupaki i sumy w prądzie — trofeum to rzadka głowacica.' },
     { id:'morze', name:'Morze Bałtyckie', icon:'🌊', price:400,
       desc:'Dorsze, makrele i śledzie — a czasem bierze wędrowny łosoś bałtycki.' },
+    { id:'egzotyka', name:'Egzotyczna Rzeka', icon:'🌴', price:600,
+      desc:'Piranie, bassy i kolorowe tucunare z innych stron świata — a w toni czyha gigantyczna arapaima.' },
   ];
   const LOCATION_PALETTES = {
     jezioro: { skyTop:'#12324a', skyBottom:'#1c5372', waterTop:'#0e3a55', waterMid:'#0a2c44', waterBottom:'#071b2b', rayTint:'191,232,255' },
     rzeka:   { skyTop:'#173d2c', skyBottom:'#2c6b46', waterTop:'#0f4a38', waterMid:'#0b382a', waterBottom:'#061f17', rayTint:'190,255,220' },
     morze:   { skyTop:'#0d3f5c', skyBottom:'#1c7fa8', waterTop:'#0b5878', waterMid:'#083f58', waterBottom:'#041f30', rayTint:'180,235,255' },
+    egzotyka:{ skyTop:'#2a4a1c', skyBottom:'#5a8a2c', waterTop:'#1a5a3a', waterMid:'#124030', waterBottom:'#082018', rayTint:'210,255,160' },
   };
   function currentPalette() {
     return LOCATION_PALETTES[currentLocation] || LOCATION_PALETTES.jezioro;
