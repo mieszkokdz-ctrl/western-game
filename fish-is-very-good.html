@@ -247,7 +247,7 @@ html, body {
     box-shadow:0 2px 6px rgba(0,0,0,0.4); font-variant-numeric:tabular-nums;
   }
 
-  .sell-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; max-height:40vh; overflow-y:auto; }
+  .sell-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; overflow-y:auto; min-height:0; }
   .sell-item {
     display:flex; justify-content:space-between; align-items:center; gap:12px;
     padding:12px 14px; border-radius:14px;
@@ -266,12 +266,14 @@ html, body {
   .sell-total span { color:var(--sun); font-family:'Baloo Deep','Reef Sans',sans-serif; }
 
   .shop-card {
-    width:min(460px, 92vw); max-height:82vh; overflow-y:auto;
+    width:min(460px, 92vw); max-height:88vh;
+    display:flex; flex-direction:column;
     padding:26px 24px; border-radius:24px; text-align:left;
   }
-  .shop-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .shop-header { flex-shrink:0; display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .shop-card .btn, .shop-card .shop-buy-btn { flex-shrink:0; }
   .shop-coins { font-family:'Baloo Deep','Reef Sans',sans-serif; font-weight:800; font-size:18px; color:var(--sun); }
-  .shop-items { display:flex; flex-direction:column; gap:12px; margin-bottom:22px; }
+  .shop-items { display:flex; flex-direction:column; gap:12px; margin-bottom:22px; overflow-y:auto; min-height:0; }
   .shop-item {
     display:flex; justify-content:space-between; align-items:center; gap:14px;
     padding:14px 16px; border-radius:16px;
@@ -299,6 +301,7 @@ html, body {
 
   .bait-grid {
     display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px;
+    overflow-y:auto; min-height:0;
   }
   .bait-card-item {
     display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
@@ -334,6 +337,7 @@ html, body {
 
   .daily-grid {
     display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:16px;
+    overflow-y:auto; min-height:0;
   }
   .daily-card {
     display:flex; flex-direction:column; align-items:center; gap:4px;
