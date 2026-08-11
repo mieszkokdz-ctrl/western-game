@@ -136,7 +136,10 @@ html, body {
   min-width:230px; opacity:0; pointer-events:none;
   transition:opacity 0.25s ease, transform 0.25s ease;
 }
-#catchToast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+#catchToast.show { opacity:1; transform:translate(-50%,-50%) scale(1); pointer-events:auto; }
+#catchToast .toast-fish-canvas { display:block; margin:0 auto 8px; }
+#catchToast .toast-choice { display:flex; gap:8px; margin-top:14px; }
+#catchToast .toast-choice .bait-action-btn { flex:1; padding:11px 8px; font-size:10.5px; }
 #catchToast .toast-eyebrow { font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--foam-dim); margin-bottom:6px; }
 #catchToast .toast-name { font-family:'Baloo Deep','Reef Sans',sans-serif; font-size:26px; font-weight:800; color:var(--foam); margin-bottom:4px; }
 #catchToast .toast-weight { font-size:15px; font-weight:600; color:var(--sun); font-variant-numeric:tabular-nums; }
@@ -176,7 +179,7 @@ html, body {
 
   #hud .coins { font-size:13px; font-weight:700; color:var(--sun); margin-top:3px; }
 
-  #shopTile, #mapTile {
+  #shopTile, #mapTile, #gablotaTile {
     position:fixed; left:16px; bottom:16px; z-index:12;
     display:none; flex-direction:column; align-items:center; justify-content:center; gap:2px;
     width:72px; height:72px; border-radius:18px; cursor:pointer;
@@ -184,11 +187,12 @@ html, body {
     transition:transform 0.1s ease, filter 0.15s ease, opacity 0.2s ease;
   }
   #mapTile { bottom:100px; }
-  #shopTile:hover, #mapTile:hover { filter:brightness(1.1); }
-  #shopTile:active, #mapTile:active { transform:translateY(3px) scale(0.97); }
-  #shopTile .shop-icon, #sellTile .shop-icon, #mapTile .shop-icon { font-size:22px; line-height:1; }
-  #shopTile .shop-label, #sellTile .shop-label, #mapTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
-  #shopTile.disabled, #sellTile.disabled, #mapTile.disabled { opacity:0.35; pointer-events:none; }
+  #gablotaTile { bottom:184px; }
+  #shopTile:hover, #mapTile:hover, #gablotaTile:hover { filter:brightness(1.1); }
+  #shopTile:active, #mapTile:active, #gablotaTile:active { transform:translateY(3px) scale(0.97); }
+  #shopTile .shop-icon, #sellTile .shop-icon, #mapTile .shop-icon, #gablotaTile .shop-icon { font-size:22px; line-height:1; }
+  #shopTile .shop-label, #sellTile .shop-label, #mapTile .shop-label, #gablotaTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
+  #shopTile.disabled, #sellTile.disabled, #mapTile.disabled, #gablotaTile.disabled { opacity:0.35; pointer-events:none; }
 
   #sellTile {
     position:fixed; right:16px; bottom:16px; z-index:12;
@@ -214,6 +218,8 @@ html, body {
   }
   .sell-item-name { font-weight:700; font-size:13.5px; color:var(--foam); }
   .sell-item-count { font-size:11.5px; color:var(--foam-dim); margin-left:4px; }
+  .trophy-thumb { flex-shrink:0; border-radius:10px; background:rgba(0,0,0,0.18); }
+  .trophy-info { flex:1; }
   .sell-item-value { font-family:'Baloo Deep','Reef Sans',sans-serif; font-weight:800; font-size:14px; color:var(--sun); font-variant-numeric:tabular-nums; }
   .sell-empty { text-align:center; padding:26px 10px; color:var(--foam-dim); font-size:13px; }
   .sell-total {
@@ -309,6 +315,12 @@ html, body {
   <div class="val"><span id="bestVal">0</span> kg</div>
 </div>
 
+<div id="gablotaTile" class="glass">
+  <div class="shop-icon">🏆</div>
+  <div class="shop-label">Gablota</div>
+  <div id="gablotaBadge" class="tile-badge" style="display:none;">0</div>
+</div>
+
 <div id="mapTile" class="glass">
   <div class="shop-icon">🗺️</div>
   <div class="shop-label">Mapa</div>
@@ -331,10 +343,15 @@ html, body {
 </div>
 
 <div id="catchToast" class="glass">
+  <canvas id="toastFishCanvas" class="toast-fish-canvas" width="120" height="80"></canvas>
   <div class="toast-eyebrow" id="toastEyebrow">Złowiono</div>
   <div class="toast-name" id="toastName">Płotka</div>
   <div class="toast-weight" id="toastWeight">0.2 kg</div>
   <div class="toast-record" id="toastRecord" style="display:none;">🏆 Nowy rekord!</div>
+  <div class="toast-choice" id="toastChoice" style="display:none;">
+    <button class="bait-action-btn" id="toastBasketBtn">🧺 Do koszyka</button>
+    <button class="bait-action-btn equipped-btn" id="toastKeepBtn">🏆 Do gabloty</button>
+  </div>
 </div>
 
 <div class="overlay hidden" id="shopScreen">
@@ -394,6 +411,17 @@ html, body {
   </div>
 </div>
 
+<div class="overlay hidden" id="gablotaScreen">
+  <div class="shop-card glass">
+    <div class="shop-header">
+      <div class="eyebrow-tag" style="margin-bottom:0;">gablota trofeów</div>
+      <div class="shop-coins" id="gablotaCountLabel">0 okazów</div>
+    </div>
+    <div class="sell-list" id="gablotaList"></div>
+    <button class="shop-buy-btn" id="gablotaCloseBtn" style="width:100%; padding:12px;">Zamknij</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="sellScreen">
   <div class="shop-card glass">
     <div class="shop-header">
@@ -447,6 +475,7 @@ html, body {
   const INVENTORY_KEY = 'fishIsVeryGood_inventory';
   const OWNED_LOCATIONS_KEY = 'fishIsVeryGood_ownedLocations';
   const LOCATION_KEY = 'fishIsVeryGood_location';
+  const GABLOTA_KEY = 'fishIsVeryGood_gablota';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -490,6 +519,16 @@ html, body {
   const mapGrid = document.getElementById('mapGrid');
   const mapCoinsVal = document.getElementById('mapCoinsVal');
   const mapCloseBtn = document.getElementById('mapCloseBtn');
+  const toastFishCanvas = document.getElementById('toastFishCanvas');
+  const toastChoice = document.getElementById('toastChoice');
+  const toastBasketBtn = document.getElementById('toastBasketBtn');
+  const toastKeepBtn = document.getElementById('toastKeepBtn');
+  const gablotaTile = document.getElementById('gablotaTile');
+  const gablotaBadge = document.getElementById('gablotaBadge');
+  const gablotaScreen = document.getElementById('gablotaScreen');
+  const gablotaList = document.getElementById('gablotaList');
+  const gablotaCountLabel = document.getElementById('gablotaCountLabel');
+  const gablotaCloseBtn = document.getElementById('gablotaCloseBtn');
 
   let bestKg = parseFloat(localStorage.getItem(BEST_KEY) || '0');
   let caughtCount = 0;
@@ -499,6 +538,14 @@ html, body {
   let shopOpen = false;
   let sellOpen = false;
   let mapOpen = false;
+  let gablotaOpen = false;
+  let pendingCatch = null;
+
+  let gablota = [];
+  try {
+    const savedGablota = JSON.parse(localStorage.getItem(GABLOTA_KEY) || '[]');
+    if (Array.isArray(savedGablota)) gablota = savedGablota;
+  } catch {}
 
   let inventory = [];
   try {
@@ -811,6 +858,62 @@ html, body {
   sellCloseBtn.addEventListener('click', closeSell);
   sellAllBtn.addEventListener('click', sellAllFish);
 
+  function updateGablotaBadge() {
+    if (gablota.length > 0) {
+      gablotaBadge.textContent = gablota.length;
+      gablotaBadge.style.display = 'flex';
+    } else {
+      gablotaBadge.style.display = 'none';
+    }
+  }
+
+  function renderGablota() {
+    gablotaCountLabel.textContent = gablota.length + (gablota.length === 1 ? ' okaz' : ' okazów');
+    gablotaList.innerHTML = '';
+    if (gablota.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sell-empty';
+      empty.textContent = 'Gablota jest pusta. Złów coś wyjątkowego i zostaw je na pamiątkę zamiast sprzedawać!';
+      gablotaList.appendChild(empty);
+      return;
+    }
+    const groups = {};
+    for (const item of gablota) {
+      if (!groups[item.name]) groups[item.name] = { count:0, best:0, color:item.color, fin:item.fin, glow:item.glow };
+      groups[item.name].count++;
+      if (item.kg > groups[item.name].best) groups[item.name].best = item.kg;
+    }
+    for (const name of Object.keys(groups)) {
+      const g = groups[name];
+      const row = document.createElement('div');
+      row.className = 'sell-item';
+      const cvs = document.createElement('canvas');
+      cvs.width = 64; cvs.height = 44; cvs.className = 'trophy-thumb';
+      drawFishIcon(cvs.getContext('2d'), g, 32, 24, 17);
+      const info = document.createElement('div');
+      info.className = 'trophy-info';
+      info.innerHTML = '<span class="sell-item-name">' + name + '</span><span class="sell-item-count">×' + g.count + '</span>';
+      const best = document.createElement('div');
+      best.className = 'sell-item-value';
+      best.textContent = g.best.toFixed(2) + ' kg';
+      row.appendChild(cvs); row.appendChild(info); row.appendChild(best);
+      gablotaList.appendChild(row);
+    }
+  }
+
+  function openGablota() {
+    if (gablotaTile.classList.contains('disabled')) return;
+    gablotaOpen = true;
+    gablotaScreen.classList.remove('hidden');
+    renderGablota();
+  }
+  function closeGablota() {
+    gablotaOpen = false;
+    gablotaScreen.classList.add('hidden');
+  }
+  gablotaTile.addEventListener('click', openGablota);
+  gablotaCloseBtn.addEventListener('click', closeGablota);
+
   function renderMapScreen() {
     updateCoinsUI();
     mapGrid.innerHTML = '';
@@ -950,6 +1053,7 @@ html, body {
     shopTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     sellTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     mapTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
+    gablotaTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     switch (state) {
       case 'idle':
         statusText.textContent = 'Wyceluj i zarzuć linkę do wody.';
@@ -1034,36 +1138,68 @@ html, body {
       caughtCount++;
       caughtVal.textContent = caughtCount;
       const coinsEarned = Math.round(fish.value + kg * 3);
-      inventory.push({ name: fish.name, kg, coinsEarned });
-      localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
-      updateSellBadge();
       const isRecord = kg > bestKg;
       if (isRecord) {
         bestKg = kg;
         localStorage.setItem(BEST_KEY, bestKg.toFixed(2));
         bestVal.textContent = bestKg.toFixed(1);
       }
-      showToast(false, fish, kg, isRecord, coinsEarned);
+      showCatchChoice(fish, kg, coinsEarned, isRecord);
     } else {
-      showToast(true, fish, 0, false, 0);
+      showEscapeToast(fish);
     }
     setState('result');
   }
 
   let toastTimer = null;
-  function showToast(escaped, fish, kg, isRecord, coinsEarned) {
+  function showCatchChoice(fish, kg, coinsEarned, isRecord) {
     clearTimeout(toastTimer);
-    toast.classList.toggle('escaped', escaped);
-    toastEyebrow.textContent = escaped ? 'Urwała się' : 'Złowiono';
+    toast.classList.remove('escaped');
+    toastEyebrow.textContent = 'Złowiono';
     toastName.textContent = fish.name;
-    toastWeight.textContent = escaped ? '—' : kg.toFixed(2) + ' kg  •  🧺 do koszyka (' + coinsEarned + ' 🪙)';
+    toastWeight.textContent = kg.toFixed(2) + ' kg  •  warte ' + coinsEarned + ' 🪙';
     toastRecord.style.display = isRecord ? 'block' : 'none';
+    renderToastFishCanvas(fish);
+    toastChoice.style.display = 'flex';
+    toast.classList.add('show');
+    pendingCatch = { fish, kg, coinsEarned };
+  }
+
+  function showEscapeToast(fish) {
+    clearTimeout(toastTimer);
+    toast.classList.add('escaped');
+    toastEyebrow.textContent = 'Urwała się';
+    toastName.textContent = fish.name;
+    toastWeight.textContent = '—';
+    toastRecord.style.display = 'none';
+    toastChoice.style.display = 'none';
+    renderToastFishCanvas(fish);
     toast.classList.add('show');
     toastTimer = setTimeout(() => {
       toast.classList.remove('show');
       setState('idle');
-    }, escaped ? 1500 : 2100);
+    }, 1500);
   }
+
+  function resolvePendingCatch(destination) {
+    if (!pendingCatch) return;
+    const { fish, kg, coinsEarned } = pendingCatch;
+    if (destination === 'basket') {
+      inventory.push({ name: fish.name, kg, coinsEarned });
+      localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+      updateSellBadge();
+    } else {
+      gablota.push({ name: fish.name, kg, color: fish.color, fin: fish.fin, glow: !!fish.glow });
+      localStorage.setItem(GABLOTA_KEY, JSON.stringify(gablota));
+      updateGablotaBadge();
+    }
+    pendingCatch = null;
+    toastChoice.style.display = 'none';
+    toast.classList.remove('show');
+    setState('idle');
+  }
+  toastBasketBtn.addEventListener('click', () => resolvePendingCatch('basket'));
+  toastKeepBtn.addEventListener('click', () => resolvePendingCatch('gablota'));
 
   // ---------- input ----------
   function onPress() {
@@ -1097,9 +1233,11 @@ html, body {
     shopTile.style.display = 'flex';
     sellTile.style.display = 'flex';
     mapTile.style.display = 'flex';
+    gablotaTile.style.display = 'flex';
     bestVal.textContent = bestKg.toFixed(1);
     renderShop();
     updateSellBadge();
+    updateGablotaBadge();
     setState('idle');
   });
 
@@ -1257,6 +1395,36 @@ html, body {
       ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r * 0.4, 0, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
+  }
+
+  function drawFishIcon(targetCtx, fish, cx, cy, s) {
+    targetCtx.save();
+    targetCtx.translate(cx, cy);
+    if (fish.glow) {
+      targetCtx.shadowColor = fish.color;
+      targetCtx.shadowBlur = s * 0.7;
+    }
+    targetCtx.fillStyle = fish.color;
+    targetCtx.beginPath(); targetCtx.ellipse(0, 0, s, s * 0.58, 0, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.shadowBlur = 0;
+    targetCtx.fillStyle = fish.fin;
+    targetCtx.beginPath();
+    targetCtx.moveTo(-s * 0.82, 0); targetCtx.lineTo(-s * 1.35, -s * 0.5); targetCtx.lineTo(-s * 1.35, s * 0.5);
+    targetCtx.closePath(); targetCtx.fill();
+    targetCtx.beginPath();
+    targetCtx.moveTo(s * 0.05, -s * 0.5); targetCtx.lineTo(s * 0.35, -s * 0.95); targetCtx.lineTo(s * 0.5, -s * 0.45);
+    targetCtx.closePath(); targetCtx.fill();
+    targetCtx.fillStyle = '#fff';
+    targetCtx.beginPath(); targetCtx.arc(s * 0.55, -s * 0.08, s * 0.14, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.fillStyle = '#111';
+    targetCtx.beginPath(); targetCtx.arc(s * 0.60, -s * 0.08, s * 0.07, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.restore();
+  }
+
+  function renderToastFishCanvas(fish) {
+    const tctx = toastFishCanvas.getContext('2d');
+    tctx.clearRect(0, 0, toastFishCanvas.width, toastFishCanvas.height);
+    drawFishIcon(tctx, fish, toastFishCanvas.width / 2, toastFishCanvas.height / 2 + 6, 30);
   }
 
   function drawRod() {
@@ -1429,7 +1597,7 @@ html, body {
   function loop(t) {
     const dt = clamp((t - lastT) / 1000, 0, 0.05);
     lastT = t;
-    if (started && !shopOpen && !sellOpen && !mapOpen) update(dt);
+    if (started && !shopOpen && !sellOpen && !mapOpen && !gablotaOpen) update(dt);
     draw();
     requestAnimationFrame(loop);
   }
