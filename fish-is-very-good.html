@@ -481,7 +481,7 @@ html, body {
       <div class="shop-coins">🪙 <span id="dailyCoinsVal">0</span></div>
     </div>
     <div class="daily-grid" id="dailyGrid"></div>
-    <div class="daily-status" id="dailyStatusText">Dzień 1 z 7 — odbierz pierwszą nagrodę!</div>
+    <div class="daily-status" id="dailyStatusText">Dzień 1 z 20 — odbierz pierwszą nagrodę!</div>
     <button class="btn btn-gold" id="dailyClaimBtn">Odbierz nagrodę</button>
     <button class="shop-buy-btn" id="dailyCloseBtn" style="width:100%; margin-top:10px; padding:12px;">Zamknij</button>
   </div>
@@ -833,12 +833,12 @@ html, body {
     const rodLvl = upgrades.rod || 0;
     const rodMax = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
     rodEquippedDesc.textContent = hasHiperRod
-      ? '🎣 Hiper Wędka — nagroda za 7-dniową serię logowań. Najlepsza możliwa strefa chwytu.'
+      ? '🎣 Hiper Wędka — nagroda za ' + CYCLE_LEN + '-dniową serię logowań. Najlepsza możliwa strefa chwytu.'
       : rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
     const reelLvl = upgrades.reel || 0;
     const reelMax = UPGRADE_DEFS.find(d => d.key === 'reel').costs.length;
     reelEquippedDesc.textContent = hasHiperReel
-      ? '🌀 Hiper Kołowrotek — nagroda za 2. serię 7-dniowych nagród. Najlepszy czas na zacięcie i najszybsze zwijanie.'
+      ? '🌀 Hiper Kołowrotek — nagroda za 2. serię ' + CYCLE_LEN + '-dniowych nagród. Najlepszy czas na zacięcie i najszybsze zwijanie.'
       : 'Poziom ' + reelLvl + '/' + reelMax + ' — więcej czasu na zacięcie i szybsze zwijanie.';
     for (const def of UPGRADE_DEFS) {
       const lvl = upgrades[def.key] || 0;
@@ -1087,7 +1087,11 @@ html, body {
   gablotaTile.addEventListener('click', openGablota);
   gablotaCloseBtn.addEventListener('click', closeGablota);
 
-  const DAILY_REWARDS = [20, 30, 45, 60, 80, 100, 150];
+  const CYCLE_LEN = 20;
+  const DAILY_REWARDS = [
+    15, 20, 25, 30, 35, 42, 50, 58, 67, 77,
+    88, 100, 113, 127, 142, 158, 175, 193, 212, 300,
+  ];
   function todayStr() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -1103,7 +1107,7 @@ html, body {
     if (!dailyLastClaim) return 1;
     const diff = daysBetween(dailyLastClaim, todayStr());
     if (diff <= 0) return dailyStreak;
-    if (diff === 1) return (dailyStreak % 7) + 1;
+    if (diff === 1) return (dailyStreak % CYCLE_LEN) + 1;
     return 1;
   }
 
@@ -1117,23 +1121,23 @@ html, body {
     const displayDay = claimable ? nextStreakDay() : dailyStreak;
     const upcomingWeek7Label = week7RewardLabel(week7Count + 1);
     dailyGrid.innerHTML = '';
-    for (let i = 1; i <= 7; i++) {
+    for (let i = 1; i <= CYCLE_LEN; i++) {
       const card = document.createElement('div');
       let status = 'future';
       if (i < displayDay || (i === displayDay && !claimable)) status = 'done';
       if (i === displayDay && claimable) status = 'today';
-      card.className = 'daily-card ' + status + (i === 7 ? ' day7' : '');
+      card.className = 'daily-card ' + status + (i === CYCLE_LEN ? ' day7' : '');
       const day = document.createElement('div');
       day.className = 'daily-day';
       day.textContent = 'Dzień ' + i;
       const icon = document.createElement('div');
       icon.className = 'daily-icon';
-      icon.textContent = status === 'done' ? '✅' : (i === 7 ? '🎣' : '🪙');
+      icon.textContent = status === 'done' ? '✅' : (i === CYCLE_LEN ? '🎣' : '🪙');
       const amount = document.createElement('div');
       amount.className = 'daily-amount';
       amount.textContent = '+' + DAILY_REWARDS[i - 1];
       card.appendChild(day); card.appendChild(icon); card.appendChild(amount);
-      if (i === 7) {
+      if (i === CYCLE_LEN) {
         const extra = document.createElement('div');
         extra.className = 'daily-reward-extra';
         extra.textContent = upcomingWeek7Label;
@@ -1142,11 +1146,11 @@ html, body {
       dailyGrid.appendChild(card);
     }
     if (claimable) {
-      dailyStatusText.textContent = displayDay === 7
-        ? 'Dzień 7 z 7 — odbierz wielką nagrodę: ' + upcomingWeek7Label + '!'
-        : 'Dzień ' + displayDay + ' z 7 — odbierz dzisiejszą nagrodę!';
-      dailyClaimBtn.textContent = displayDay === 7
-        ? 'Odbierz — +150 🪙 i ' + upcomingWeek7Label
+      dailyStatusText.textContent = displayDay === CYCLE_LEN
+        ? 'Dzień ' + CYCLE_LEN + ' z ' + CYCLE_LEN + ' — odbierz wielką nagrodę: ' + upcomingWeek7Label + '!'
+        : 'Dzień ' + displayDay + ' z ' + CYCLE_LEN + ' — odbierz dzisiejszą nagrodę!';
+      dailyClaimBtn.textContent = displayDay === CYCLE_LEN
+        ? 'Odbierz — +' + DAILY_REWARDS[CYCLE_LEN - 1] + ' 🪙 i ' + upcomingWeek7Label
         : 'Odbierz nagrodę — +' + DAILY_REWARDS[displayDay - 1] + ' 🪙';
       dailyClaimBtn.disabled = false;
     } else {
@@ -1174,7 +1178,7 @@ html, body {
     localStorage.setItem(DAILY_STREAK_KEY, String(dailyStreak));
     localStorage.setItem(DAILY_LAST_CLAIM_KEY, dailyLastClaim);
     lastClaimRewardText = '';
-    if (day === 7) {
+    if (day === CYCLE_LEN) {
       week7Count++;
       localStorage.setItem(WEEK7_COUNT_KEY, String(week7Count));
       if (week7Count === 1) {
