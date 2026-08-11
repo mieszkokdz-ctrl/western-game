@@ -681,20 +681,20 @@ html, body {
     { name:'Płotka',       color:'#c7d2d6', fin:'#8fa3aa', minKg:0.10, maxKg:0.35, weight:38,  erratic:0.16, zone:0.34, rare:false, value:2,  locations:['jezioro','rzeka'] },
     { name:'Okoń',         color:'#8fbf5e', fin:'#527d34', minKg:0.15, maxKg:0.55, weight:28,  erratic:0.26, zone:0.30, rare:false, value:4,  locations:['jezioro','rzeka'] },
     { name:'Karp',         color:'#c99a53', fin:'#8a6530', minKg:0.80, maxKg:3.20, weight:16,  erratic:0.40, zone:0.27, rare:true,  value:12, locations:['jezioro'] },
-    { name:'Szczupak',     color:'#5c7a52', fin:'#38492f', minKg:1.00, maxKg:4.80, weight:10,  erratic:0.54, zone:0.24, rare:true,  value:20, locations:['jezioro','rzeka'] },
-    { name:'Sum',          color:'#6b5a4a', fin:'#40342a', minKg:3.00, maxKg:11.0, weight:5,   erratic:0.66, zone:0.21, rare:true,  value:45, locations:['jezioro','rzeka'] },
+    { name:'Szczupak',     color:'#5c7a52', fin:'#38492f', minKg:1.00, maxKg:4.80, weight:10,  erratic:0.54, zone:0.24, rare:true,  value:20, locations:['jezioro','rzeka'], elongated:true },
+    { name:'Sum',          color:'#6b5a4a', fin:'#40342a', minKg:3.00, maxKg:11.0, weight:5,   erratic:0.66, zone:0.21, rare:true,  value:45, locations:['jezioro','rzeka'], elongated:true, whiskers:true },
     { name:'Złota Rybka',  color:'#ffcf6b', fin:'#d99a30', minKg:0.10, maxKg:0.30, weight:1.4, erratic:0.80, zone:0.17, glow:true, rare:true, value:80, locations:['jezioro'] },
     { name:'Śledź',        color:'#9fb8c9', fin:'#5f7c8f', minKg:0.10, maxKg:0.30, weight:34,  erratic:0.20, zone:0.32, rare:false, value:3,  locations:['morze'] },
     { name:'Makrela',      color:'#3f6e8c', fin:'#20455c', minKg:0.30, maxKg:1.20, weight:20,  erratic:0.42, zone:0.26, rare:false, value:9,  locations:['morze'] },
     { name:'Dorsz',        color:'#8a9a8a', fin:'#5a6a5a', minKg:1.50, maxKg:8.00, weight:7,   erratic:0.58, zone:0.22, rare:true,  value:38, locations:['morze'] },
     { name:'Jesiotr',      color:'#8a9494', fin:'#525a5a', minKg:8.00, maxKg:35.0, weight:0.6, erratic:0.60, zone:0.16, glow:true, rare:true, value:160, locations:['jezioro'] },
-    { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'] },
+    { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'], elongated:true },
     { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
     { name:'Lin',           color:'#6a8a4a', fin:'#3f5a2a', minKg:0.30, maxKg:1.20, weight:22,  erratic:0.22, zone:0.29, rare:false, value:6,  locations:['jezioro','rzeka'] },
     { name:'Pirania',       color:'#c9524a', fin:'#7a2a24', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'] },
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
-    { name:'Arapaima',      color:'#a85050', fin:'#5a2424', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'] },
+    { name:'Arapaima',      color:'#a85050', fin:'#5a2424', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -1727,6 +1727,7 @@ html, body {
     ctx.restore();
   }
 
+  const AMBIENT_FISH_STUB = { color:'#7fb8cc', fin:'#5a92a8' };
   function drawAmbientFish() {
     const wy = waterLine();
     ctx.save();
@@ -1734,17 +1735,10 @@ html, body {
       const x = f.x * W, y = wy + f.y * (H - wy);
       const s = f.s, wob = Math.sin(f.wobble) * 0.1;
       ctx.globalAlpha = 0.22;
-      ctx.fillStyle = '#7fb8cc';
       ctx.save();
       ctx.translate(x, y);
-      ctx.scale(f.dir, 1);
       ctx.rotate(wob);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, s, s * 0.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(-s * 0.85, 0); ctx.lineTo(-s * 1.4, -s * 0.5); ctx.lineTo(-s * 1.4, s * 0.5);
-      ctx.closePath(); ctx.fill();
+      drawFishIcon(ctx, AMBIENT_FISH_STUB, 0, 0, s * 0.85, f.dir);
       ctx.restore();
     }
     ctx.restore();
@@ -1761,27 +1755,92 @@ html, body {
     ctx.restore();
   }
 
-  function drawFishIcon(targetCtx, fish, cx, cy, s) {
+  function shadeHex(hex, percent) {
+    const num = parseInt(hex.slice(1), 16);
+    let r = (num >> 16) + Math.round(2.55 * percent);
+    let g = ((num >> 8) & 0xff) + Math.round(2.55 * percent);
+    let b = (num & 0xff) + Math.round(2.55 * percent);
+    r = clamp(r, 0, 255); g = clamp(g, 0, 255); b = clamp(b, 0, 255);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
+  function drawFishIcon(targetCtx, fish, cx, cy, s, facing) {
+    facing = facing || 1;
     targetCtx.save();
     targetCtx.translate(cx, cy);
+    targetCtx.scale(facing, 1);
+
+    const elong = fish.elongated ? 1.55 : 1.0;
+    const bl = s * elong;
+    const bh = s * (fish.elongated ? 0.42 : 0.56);
+
     if (fish.glow) {
       targetCtx.shadowColor = fish.color;
       targetCtx.shadowBlur = s * 0.7;
     }
-    targetCtx.fillStyle = fish.color;
-    targetCtx.beginPath(); targetCtx.ellipse(0, 0, s, s * 0.58, 0, 0, Math.PI * 2); targetCtx.fill();
-    targetCtx.shadowBlur = 0;
+
+    // caudal (tail) fin
     targetCtx.fillStyle = fish.fin;
     targetCtx.beginPath();
-    targetCtx.moveTo(-s * 0.82, 0); targetCtx.lineTo(-s * 1.35, -s * 0.5); targetCtx.lineTo(-s * 1.35, s * 0.5);
-    targetCtx.closePath(); targetCtx.fill();
+    targetCtx.moveTo(-bl * 0.76, 0);
+    targetCtx.lineTo(-bl * 1.28, -bh * 0.9);
+    targetCtx.quadraticCurveTo(-bl * 1.05, 0, -bl * 1.28, bh * 0.9);
+    targetCtx.closePath();
+    targetCtx.fill();
+
+    // whiskers (catfish-style barbels)
+    if (fish.whiskers) {
+      targetCtx.strokeStyle = fish.fin;
+      targetCtx.lineWidth = Math.max(1, s * 0.05);
+      targetCtx.lineCap = 'round';
+      targetCtx.beginPath(); targetCtx.moveTo(bl * 0.86, bh * 0.18); targetCtx.quadraticCurveTo(bl * 1.05, bh * 0.55, bl * 1.22, bh * 0.8); targetCtx.stroke();
+      targetCtx.beginPath(); targetCtx.moveTo(bl * 0.86, -bh * 0.18); targetCtx.quadraticCurveTo(bl * 1.05, -bh * 0.55, bl * 1.22, -bh * 0.8); targetCtx.stroke();
+    }
+
+    // body - tapered torpedo shape with light-to-dark shading
+    const grad = targetCtx.createLinearGradient(0, -bh, 0, bh);
+    grad.addColorStop(0, shadeHex(fish.color, -20));
+    grad.addColorStop(0.5, fish.color);
+    grad.addColorStop(1, shadeHex(fish.color, 24));
+    targetCtx.fillStyle = grad;
     targetCtx.beginPath();
-    targetCtx.moveTo(s * 0.05, -s * 0.5); targetCtx.lineTo(s * 0.35, -s * 0.95); targetCtx.lineTo(s * 0.5, -s * 0.45);
-    targetCtx.closePath(); targetCtx.fill();
+    targetCtx.moveTo(bl * 0.92, 0);
+    targetCtx.quadraticCurveTo(bl * 0.7, -bh, -bl * 0.5, -bh * 0.8);
+    targetCtx.quadraticCurveTo(-bl * 0.86, -bh * 0.22, -bl * 0.82, 0);
+    targetCtx.quadraticCurveTo(-bl * 0.86, bh * 0.22, -bl * 0.5, bh * 0.8);
+    targetCtx.quadraticCurveTo(bl * 0.7, bh, bl * 0.92, 0);
+    targetCtx.closePath();
+    targetCtx.fill();
+    targetCtx.shadowBlur = 0;
+
+    // dorsal fin
+    targetCtx.fillStyle = fish.fin;
+    targetCtx.beginPath();
+    targetCtx.moveTo(-bl * 0.05, -bh * 0.76);
+    targetCtx.quadraticCurveTo(bl * 0.14, -bh * 1.5, bl * 0.36, -bh * 0.68);
+    targetCtx.closePath();
+    targetCtx.fill();
+
+    // pectoral fin
+    targetCtx.beginPath();
+    targetCtx.moveTo(bl * 0.3, bh * 0.08);
+    targetCtx.quadraticCurveTo(bl * 0.2, bh * 0.72, bl * 0.02, bh * 0.4);
+    targetCtx.closePath();
+    targetCtx.fill();
+
+    // gill line
+    targetCtx.strokeStyle = 'rgba(0,0,0,0.16)';
+    targetCtx.lineWidth = Math.max(1, s * 0.045);
+    targetCtx.beginPath();
+    targetCtx.arc(bl * 0.52, 0, bh * 0.5, -Math.PI * 0.38, Math.PI * 0.38);
+    targetCtx.stroke();
+
+    // eye
     targetCtx.fillStyle = '#fff';
-    targetCtx.beginPath(); targetCtx.arc(s * 0.55, -s * 0.08, s * 0.14, 0, Math.PI * 2); targetCtx.fill();
-    targetCtx.fillStyle = '#111';
-    targetCtx.beginPath(); targetCtx.arc(s * 0.60, -s * 0.08, s * 0.07, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.beginPath(); targetCtx.arc(bl * 0.6, -bh * 0.1, bh * 0.24, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.fillStyle = '#161616';
+    targetCtx.beginPath(); targetCtx.arc(bl * 0.66, -bh * 0.1, bh * 0.13, 0, Math.PI * 2); targetCtx.fill();
+
     targetCtx.restore();
   }
 
@@ -1958,13 +2017,7 @@ html, body {
     ctx.stroke();
 
     const fishCy = trackY + fishY * trackH;
-    ctx.save();
-    ctx.translate(trackX + trackW / 2, fishCy);
-    ctx.fillStyle = fish.color;
-    ctx.beginPath(); ctx.ellipse(0, 0, 16, 9, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = fish.fin;
-    ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-22, -7); ctx.lineTo(-22, 7); ctx.closePath(); ctx.fill();
-    ctx.restore();
+    drawFishIcon(ctx, fish, trackX + trackW / 2, fishCy, 15);
 
     const barX = trackX + trackW + 14, barW = pw * 0.14;
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
