@@ -313,6 +313,9 @@ html, body {
   .daily-card.done { opacity:0.55; }
   .daily-card.done .daily-icon { filter:grayscale(0.3); }
   .daily-card.future { opacity:0.4; }
+  .daily-card.day7 { border-color:rgba(255,207,107,0.45); box-shadow:0 0 14px rgba(255,207,107,0.18); }
+  .daily-card.day7.today { border-color:var(--sun); box-shadow:0 0 18px rgba(255,207,107,0.4); }
+  .daily-reward-extra { font-size:8.5px; font-weight:800; letter-spacing:0.02em; color:var(--sun); margin-top:1px; }
   .daily-status { font-size:12.5px; color:var(--foam-dim); text-align:center; margin-bottom:16px; }
 
 @media (prefers-reduced-motion: reduce) {
@@ -517,6 +520,7 @@ html, body {
   const GABLOTA_KEY = 'fishIsVeryGood_gablota';
   const DAILY_STREAK_KEY = 'fishIsVeryGood_dailyStreak';
   const DAILY_LAST_CLAIM_KEY = 'fishIsVeryGood_dailyLastClaim';
+  const HIPER_ROD_KEY = 'fishIsVeryGood_hasHiperRod';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -594,6 +598,7 @@ html, body {
 
   let dailyStreak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
   let dailyLastClaim = localStorage.getItem(DAILY_LAST_CLAIM_KEY) || null;
+  let hasHiperRod = localStorage.getItem(HIPER_ROD_KEY) === '1';
 
   let gablota = [];
   try {
@@ -668,9 +673,11 @@ html, body {
     { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0' },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
+    { name:'Hiper Wędka', rodOuter:'#1a1a22', rodInner:'#ffffff', guide:'rgba(0,0,0,0.6)', reelBody:'#15151c', reelFace:'#ffffff', reelArm:'#1a1a22', accent:'#ffffff', glow:true, rainbow:true },
   ];
   function currentRodStyle() {
-    return ROD_STYLES[clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 1)];
+    if (hasHiperRod) return ROD_STYLES[ROD_STYLES.length - 1];
+    return ROD_STYLES[clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 2)];
   }
 
   const REEL_RING_COLORS = [null, 'rgba(170,205,215,0.55)', '#6fd7ff', '#3fe8ff', '#eafcff'];
@@ -706,7 +713,8 @@ html, body {
     return pool[0];
   }
   function fishZone(fish) {
-    return fish.zone * (1 + 0.18 * (upgrades.rod || 0));
+    const effLvl = hasHiperRod ? 5 : (upgrades.rod || 0);
+    return fish.zone * (1 + 0.18 * effLvl);
   }
 
   const UPGRADE_DEFS = [
@@ -730,7 +738,9 @@ html, body {
     const rodStyle = currentRodStyle();
     const rodLvl = upgrades.rod || 0;
     const rodMax = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
-    rodEquippedDesc.textContent = rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
+    rodEquippedDesc.textContent = hasHiperRod
+      ? '🎣 Hiper Wędka — nagroda za 7-dniową serię logowań. Najlepsza możliwa strefa chwytu.'
+      : rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
     const reelLvl = upgrades.reel || 0;
     const reelMax = UPGRADE_DEFS.find(d => d.key === 'reel').costs.length;
     reelEquippedDesc.textContent = 'Poziom ' + reelLvl + '/' + reelMax + ' — więcej czasu na zacięcie i szybsze zwijanie.';
@@ -1011,25 +1021,37 @@ html, body {
       let status = 'future';
       if (i < displayDay || (i === displayDay && !claimable)) status = 'done';
       if (i === displayDay && claimable) status = 'today';
-      card.className = 'daily-card ' + status;
+      card.className = 'daily-card ' + status + (i === 7 ? ' day7' : '');
       const day = document.createElement('div');
       day.className = 'daily-day';
       day.textContent = 'Dzień ' + i;
       const icon = document.createElement('div');
       icon.className = 'daily-icon';
-      icon.textContent = status === 'done' ? '✅' : (i === 7 ? '🎉' : '🪙');
+      icon.textContent = status === 'done' ? '✅' : (i === 7 ? '🎣' : '🪙');
       const amount = document.createElement('div');
       amount.className = 'daily-amount';
       amount.textContent = '+' + DAILY_REWARDS[i - 1];
       card.appendChild(day); card.appendChild(icon); card.appendChild(amount);
+      if (i === 7) {
+        const extra = document.createElement('div');
+        extra.className = 'daily-reward-extra';
+        extra.textContent = 'Hiper Wędka';
+        card.appendChild(extra);
+      }
       dailyGrid.appendChild(card);
     }
     if (claimable) {
-      dailyStatusText.textContent = 'Dzień ' + displayDay + ' z 7 — odbierz dzisiejszą nagrodę!';
-      dailyClaimBtn.textContent = 'Odbierz nagrodę — +' + DAILY_REWARDS[displayDay - 1] + ' 🪙';
+      dailyStatusText.textContent = displayDay === 7
+        ? 'Dzień 7 z 7 — odbierz wielką nagrodę i Hiper Wędkę!'
+        : 'Dzień ' + displayDay + ' z 7 — odbierz dzisiejszą nagrodę!';
+      dailyClaimBtn.textContent = displayDay === 7
+        ? 'Odbierz — +150 🪙 i Hiper Wędkę 🎣'
+        : 'Odbierz nagrodę — +' + DAILY_REWARDS[displayDay - 1] + ' 🪙';
       dailyClaimBtn.disabled = false;
     } else {
-      dailyStatusText.textContent = 'Dzisiejsza nagroda odebrana. Wróć jutro po kolejną!';
+      dailyStatusText.textContent = hasHiperRod
+        ? 'Dzisiejsza nagroda odebrana. Hiper Wędka jest już Twoja! Wróć jutro po kolejną serię.'
+        : 'Dzisiejsza nagroda odebrana. Wróć jutro po kolejną!';
       dailyClaimBtn.textContent = 'Odebrano — wróć jutro';
       dailyClaimBtn.disabled = true;
     }
@@ -1045,6 +1067,11 @@ html, body {
     localStorage.setItem(COINS_KEY, String(coins));
     localStorage.setItem(DAILY_STREAK_KEY, String(dailyStreak));
     localStorage.setItem(DAILY_LAST_CLAIM_KEY, dailyLastClaim);
+    if (day === 7 && !hasHiperRod) {
+      hasHiperRod = true;
+      localStorage.setItem(HIPER_ROD_KEY, '1');
+      renderShop();
+    }
     updateDailyBadge();
     renderDaily();
   }
@@ -1582,30 +1609,38 @@ html, body {
   function drawRod() {
     const g = rodGeom();
     const style = currentRodStyle();
+    let outerColor = style.rodOuter, innerColor = style.rodInner, accentColor = style.accent, reelFaceColor = style.reelFace;
+    if (style.rainbow) {
+      const hue = (performance.now() * 0.06) % 360;
+      outerColor = 'hsl(' + hue.toFixed(0) + ',65%,32%)';
+      innerColor = 'hsl(' + ((hue + 40) % 360).toFixed(0) + ',85%,68%)';
+      accentColor = 'hsl(' + ((hue + 180) % 360).toFixed(0) + ',90%,72%)';
+      reelFaceColor = accentColor;
+    }
     ctx.save();
     ctx.lineCap = 'round';
 
     if (style.glow) {
       ctx.save();
-      ctx.strokeStyle = style.accent;
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 16;
       ctx.globalAlpha = 0.25;
-      ctx.shadowColor = style.accent;
+      ctx.shadowColor = accentColor;
       ctx.shadowBlur = 18;
       ctx.beginPath(); ctx.moveTo(g.base.x, g.base.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
       ctx.restore();
     }
 
-    ctx.strokeStyle = style.rodOuter;
+    ctx.strokeStyle = outerColor;
     ctx.lineWidth = 9;
     ctx.beginPath(); ctx.moveTo(g.base.x, g.base.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
-    ctx.strokeStyle = style.rodInner;
+    ctx.strokeStyle = innerColor;
     ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(g.base.x, g.base.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
 
-    if (style.accent) {
+    if (accentColor) {
       ctx.save();
-      ctx.strokeStyle = style.accent;
+      ctx.strokeStyle = accentColor;
       ctx.lineWidth = 1.3;
       ctx.globalAlpha = 0.85;
       ctx.beginPath(); ctx.moveTo(g.base.x, g.base.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
@@ -1633,7 +1668,7 @@ html, body {
     }
     ctx.fillStyle = style.reelBody;
     ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = style.reelFace;
+    ctx.fillStyle = reelFaceColor;
     ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = style.reelArm;
     ctx.lineWidth = 3;
