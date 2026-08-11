@@ -530,6 +530,9 @@ html, body {
     { name:'Śledź',        color:'#9fb8c9', fin:'#5f7c8f', minKg:0.10, maxKg:0.30, weight:34,  erratic:0.20, zone:0.32, rare:false, value:3,  locations:['morze'] },
     { name:'Makrela',      color:'#3f6e8c', fin:'#20455c', minKg:0.30, maxKg:1.20, weight:20,  erratic:0.42, zone:0.26, rare:false, value:9,  locations:['morze'] },
     { name:'Dorsz',        color:'#8a9a8a', fin:'#5a6a5a', minKg:1.50, maxKg:8.00, weight:7,   erratic:0.58, zone:0.22, rare:true,  value:38, locations:['morze'] },
+    { name:'Jesiotr',      color:'#8a9494', fin:'#525a5a', minKg:8.00, maxKg:35.0, weight:0.6, erratic:0.60, zone:0.16, glow:true, rare:true, value:160, locations:['jezioro'] },
+    { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'] },
+    { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -570,11 +573,11 @@ html, body {
 
   const LOCATIONS = [
     { id:'jezioro', name:'Jezioro Leśne', icon:'🌲', price:0,
-      desc:'Spokojna woda stojąca — dom dla karpi, szczupaków i złotej rybki.' },
+      desc:'Karpie, szczupaki i złota rybka — a w głębinach podobno czai się legendarny jesiotr.' },
     { id:'rzeka', name:'Rzeka Górska', icon:'⛰️', price:150,
-      desc:'Wartki nurt — płotki, okonie, szczupaki i sumy żerują w prądzie.' },
+      desc:'Płotki, okonie, szczupaki i sumy w prądzie — trofeum to rzadka głowacica.' },
     { id:'morze', name:'Morze Bałtyckie', icon:'🌊', price:400,
-      desc:'Słone wody pełne dorszy, makreli i śledzi — zupełnie inny połów.' },
+      desc:'Dorsze, makrele i śledzie — a czasem bierze wędrowny łosoś bałtycki.' },
   ];
   const LOCATION_PALETTES = {
     jezioro: { skyTop:'#12324a', skyBottom:'#1c5372', waterTop:'#0e3a55', waterMid:'#0a2c44', waterBottom:'#071b2b', rayTint:'191,232,255' },
