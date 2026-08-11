@@ -98,7 +98,7 @@ html, body {
 }
 .btn:active { transform:translateY(5px); }
 .btn:focus-visible { outline:3px solid var(--foam); outline-offset:3px; }
-.btn:disabled { cursor:default; }
+.btn:disabled { cursor:default; opacity:0.45; filter:grayscale(0.4); }
 
 .btn-gold {
   color:var(--ink); background:linear-gradient(180deg, var(--sun), var(--sun-deep));
@@ -185,9 +185,41 @@ html, body {
   }
   #shopTile:hover { filter:brightness(1.1); }
   #shopTile:active { transform:translateY(3px) scale(0.97); }
-  #shopTile .shop-icon { font-size:22px; line-height:1; }
-  #shopTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
-  #shopTile.disabled { opacity:0.35; pointer-events:none; }
+  #shopTile .shop-icon, #sellTile .shop-icon { font-size:22px; line-height:1; }
+  #shopTile .shop-label, #sellTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
+  #shopTile.disabled, #sellTile.disabled { opacity:0.35; pointer-events:none; }
+
+  #sellTile {
+    position:fixed; right:16px; bottom:16px; z-index:12;
+    display:none; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    width:72px; height:72px; border-radius:18px; cursor:pointer;
+    pointer-events:auto; -webkit-user-select:none; user-select:none;
+    transition:transform 0.1s ease, filter 0.15s ease, opacity 0.2s ease;
+  }
+  #sellTile:hover { filter:brightness(1.1); }
+  #sellTile:active { transform:translateY(3px) scale(0.97); }
+  .tile-badge {
+    position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 5px;
+    border-radius:999px; background:var(--coral); color:var(--ink);
+    font-size:11px; font-weight:800; display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.4); font-variant-numeric:tabular-nums;
+  }
+
+  .sell-list { display:flex; flex-direction:column; gap:10px; margin-bottom:16px; max-height:40vh; overflow-y:auto; }
+  .sell-item {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:12px 14px; border-radius:14px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  }
+  .sell-item-name { font-weight:700; font-size:13.5px; color:var(--foam); }
+  .sell-item-count { font-size:11.5px; color:var(--foam-dim); margin-left:4px; }
+  .sell-item-value { font-family:'Baloo Deep','Reef Sans',sans-serif; font-weight:800; font-size:14px; color:var(--sun); font-variant-numeric:tabular-nums; }
+  .sell-empty { text-align:center; padding:26px 10px; color:var(--foam-dim); font-size:13px; }
+  .sell-total {
+    display:flex; justify-content:space-between; font-weight:800; font-size:15px;
+    color:var(--foam); padding:0 2px 14px; font-variant-numeric:tabular-nums;
+  }
+  .sell-total span { color:var(--sun); font-family:'Baloo Deep','Reef Sans',sans-serif; }
 
   .shop-card {
     width:min(460px, 92vw); max-height:82vh; overflow-y:auto;
@@ -281,6 +313,12 @@ html, body {
   <div class="shop-label">Sklep</div>
 </div>
 
+<div id="sellTile" class="glass">
+  <div class="shop-icon">🧺</div>
+  <div class="shop-label">Sprzedaj</div>
+  <div id="sellBadge" class="tile-badge" style="display:none;">0</div>
+</div>
+
 <div id="controls" style="display:none;">
   <div id="statusText">Zarzuć linkę do wody.</div>
   <button class="btn btn-gold" id="actionBtn">Zarzuć</button>
@@ -339,6 +377,19 @@ html, body {
   </div>
 </div>
 
+<div class="overlay hidden" id="sellScreen">
+  <div class="shop-card glass">
+    <div class="shop-header">
+      <div class="eyebrow-tag" style="margin-bottom:0;">koszyk rybaka</div>
+      <div class="shop-coins">🪙 <span id="sellCoinsVal">0</span></div>
+    </div>
+    <div class="sell-list" id="sellList"></div>
+    <div class="sell-total" id="sellTotalRow">Razem <span id="sellTotalVal">0</span> 🪙</div>
+    <button class="btn btn-gold" id="sellAllBtn">Sprzedaj wszystko</button>
+    <button class="shop-buy-btn" id="sellCloseBtn" style="width:100%; margin-top:10px; padding:12px;">Zamknij</button>
+  </div>
+</div>
+
 <div class="overlay" id="startScreen">
   <div class="eyebrow-tag">gra przeglądarkowa &middot; wędkarstwo</div>
   <div class="title"><span class="fish-emoji">🐟</span> FISH IS VERY GOOD</div>
@@ -376,6 +427,7 @@ html, body {
   const UPGRADES_KEY = 'fishIsVeryGood_upgrades';
   const OWNED_BAITS_KEY = 'fishIsVeryGood_ownedBaits';
   const EQUIPPED_BAIT_KEY = 'fishIsVeryGood_equippedBait';
+  const INVENTORY_KEY = 'fishIsVeryGood_inventory';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -405,6 +457,14 @@ html, body {
   const baitGrid = document.getElementById('baitGrid');
   const baitCoinsVal = document.getElementById('baitCoinsVal');
   const baitBackBtn = document.getElementById('baitBackBtn');
+  const sellTile = document.getElementById('sellTile');
+  const sellBadge = document.getElementById('sellBadge');
+  const sellScreen = document.getElementById('sellScreen');
+  const sellList = document.getElementById('sellList');
+  const sellCoinsVal = document.getElementById('sellCoinsVal');
+  const sellTotalVal = document.getElementById('sellTotalVal');
+  const sellAllBtn = document.getElementById('sellAllBtn');
+  const sellCloseBtn = document.getElementById('sellCloseBtn');
 
   let bestKg = parseFloat(localStorage.getItem(BEST_KEY) || '0');
   let caughtCount = 0;
@@ -412,6 +472,13 @@ html, body {
   let upgrades = { rod:0, reel:0 };
   try { Object.assign(upgrades, JSON.parse(localStorage.getItem(UPGRADES_KEY) || '{}')); } catch {}
   let shopOpen = false;
+  let sellOpen = false;
+
+  let inventory = [];
+  try {
+    const savedInv = JSON.parse(localStorage.getItem(INVENTORY_KEY) || '[]');
+    if (Array.isArray(savedInv)) inventory = savedInv;
+  } catch {}
 
   let ownedBaits = ['robak'];
   try {
@@ -480,6 +547,7 @@ html, body {
     coinsVal.textContent = coins;
     shopCoinsVal.textContent = coins;
     baitCoinsVal.textContent = coins;
+    sellCoinsVal.textContent = coins;
   }
 
   function renderShop() {
@@ -602,6 +670,77 @@ html, body {
   baitOpenBtn.addEventListener('click', openBaitScreen);
   baitBackBtn.addEventListener('click', closeBaitScreen);
 
+  function updateSellBadge() {
+    if (inventory.length > 0) {
+      sellBadge.textContent = inventory.length;
+      sellBadge.style.display = 'flex';
+    } else {
+      sellBadge.style.display = 'none';
+    }
+  }
+
+  function renderSellScreen() {
+    sellCoinsVal.textContent = coins;
+    sellList.innerHTML = '';
+    if (inventory.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sell-empty';
+      empty.textContent = 'Koszyk jest pusty. Złów coś, żeby było co sprzedać!';
+      sellList.appendChild(empty);
+      sellTotalVal.textContent = '0';
+      sellAllBtn.disabled = true;
+      return;
+    }
+    const groups = {};
+    let total = 0;
+    for (const item of inventory) {
+      if (!groups[item.name]) groups[item.name] = { count:0, value:0 };
+      groups[item.name].count++;
+      groups[item.name].value += item.coinsEarned;
+      total += item.coinsEarned;
+    }
+    for (const name of Object.keys(groups)) {
+      const g = groups[name];
+      const row = document.createElement('div');
+      row.className = 'sell-item';
+      const info = document.createElement('div');
+      info.innerHTML = '<span class="sell-item-name">' + name + '</span><span class="sell-item-count">×' + g.count + '</span>';
+      const value = document.createElement('div');
+      value.className = 'sell-item-value';
+      value.textContent = g.value + ' 🪙';
+      row.appendChild(info); row.appendChild(value);
+      sellList.appendChild(row);
+    }
+    sellTotalVal.textContent = total;
+    sellAllBtn.disabled = false;
+  }
+
+  function sellAllFish() {
+    if (inventory.length === 0) return;
+    const total = inventory.reduce((s, i) => s + i.coinsEarned, 0);
+    coins += total;
+    inventory = [];
+    localStorage.setItem(COINS_KEY, String(coins));
+    localStorage.setItem(INVENTORY_KEY, '[]');
+    updateCoinsUI();
+    updateSellBadge();
+    renderSellScreen();
+  }
+
+  function openSell() {
+    if (sellTile.classList.contains('disabled')) return;
+    sellOpen = true;
+    sellScreen.classList.remove('hidden');
+    renderSellScreen();
+  }
+  function closeSell() {
+    sellOpen = false;
+    sellScreen.classList.add('hidden');
+  }
+  sellTile.addEventListener('click', openSell);
+  sellCloseBtn.addEventListener('click', closeSell);
+  sellAllBtn.addEventListener('click', sellAllFish);
+
   // ---------- geometry ----------
   function waterLine() { return H * 0.58; }
 
@@ -674,6 +813,7 @@ html, body {
 
   function updateControlsUI() {
     shopTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
+    sellTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     switch (state) {
       case 'idle':
         statusText.textContent = 'Wyceluj i zarzuć linkę do wody.';
@@ -758,9 +898,9 @@ html, body {
       caughtCount++;
       caughtVal.textContent = caughtCount;
       const coinsEarned = Math.round(fish.value + kg * 3);
-      coins += coinsEarned;
-      localStorage.setItem(COINS_KEY, String(coins));
-      updateCoinsUI();
+      inventory.push({ name: fish.name, kg, coinsEarned });
+      localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory));
+      updateSellBadge();
       const isRecord = kg > bestKg;
       if (isRecord) {
         bestKg = kg;
@@ -780,7 +920,7 @@ html, body {
     toast.classList.toggle('escaped', escaped);
     toastEyebrow.textContent = escaped ? 'Urwała się' : 'Złowiono';
     toastName.textContent = fish.name;
-    toastWeight.textContent = escaped ? '—' : kg.toFixed(2) + ' kg  •  +' + coinsEarned + ' 🪙';
+    toastWeight.textContent = escaped ? '—' : kg.toFixed(2) + ' kg  •  🧺 do koszyka (' + coinsEarned + ' 🪙)';
     toastRecord.style.display = isRecord ? 'block' : 'none';
     toast.classList.add('show');
     toastTimer = setTimeout(() => {
@@ -819,8 +959,10 @@ html, body {
     bestPanel.style.display = 'block';
     controls.style.display = 'flex';
     shopTile.style.display = 'flex';
+    sellTile.style.display = 'flex';
     bestVal.textContent = bestKg.toFixed(1);
     renderShop();
+    updateSellBadge();
     setState('idle');
   });
 
@@ -1127,7 +1269,7 @@ html, body {
   function loop(t) {
     const dt = clamp((t - lastT) / 1000, 0, 0.05);
     lastT = t;
-    if (started && !shopOpen) update(dt);
+    if (started && !shopOpen && !sellOpen) update(dt);
     draw();
     requestAnimationFrame(loop);
   }
