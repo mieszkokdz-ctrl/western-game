@@ -210,7 +210,7 @@ html, body {
   <div class="title"><span class="fish-emoji">🐟</span> FISH IS VERY GOOD</div>
   <div class="subtitle">Zarzuć linkę, poczekaj na branie i zwiń żyłkę zanim ryba się urwie. Im rzadszy gatunek, tym trudniej go utrzymać.</div>
   <div class="howto glass">
-    <b>Sterowanie:</b> kliknij <b>Zarzuć</b>, żeby wrzucić przynętę do wody.<br>
+    <b>Sterowanie:</b> poruszaj kursorem lub palcem, żeby wycelować wędką, potem kliknij <b>Zarzuć</b> — linka poleci tam, gdzie celujesz.<br>
     Gdy ryba weźmie — kliknij szybko <b>Zaciągnij!</b><br>
     Potem trzymaj <b>Zwijaj</b>, żeby utrzymać rybę w zielonej strefie, aż ją wyciągniesz.
   </div>
@@ -233,6 +233,9 @@ html, body {
   }
   window.addEventListener('resize', resize);
   resize();
+
+  let pointerX = null, pointerY = null;
+  window.addEventListener('pointermove', e => { pointerX = e.clientX; pointerY = e.clientY; });
 
   const BEST_KEY = 'fishIsVeryGood_bestKg';
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -274,11 +277,32 @@ html, body {
 
   // ---------- geometry ----------
   function waterLine() { return H * 0.58; }
+
+  let aimAngle = null, aimAngleTarget = null;
+  const AIM_SPREAD = 35 * Math.PI / 180;
+
   function rodGeom() {
     const base = { x: W * 0.68, y: H + 24 };
-    const tip = { x: W * 0.38, y: H * 0.24 };
+    const dx0 = -0.30 * W, dy0 = -(0.76 * H + 24);
+    const L = Math.hypot(dx0, dy0);
+    const angle0 = Math.atan2(-dy0, dx0);
+    const angleMin = angle0 - AIM_SPREAD, angleMax = angle0 + AIM_SPREAD;
+    if (aimAngle === null) { aimAngle = angle0; aimAngleTarget = angle0; }
+    const tip = {
+      x: base.x + L * Math.cos(aimAngle),
+      y: base.y - L * Math.sin(aimAngle),
+    };
     const reel = { x: lerp(base.x, tip.x, 0.14), y: lerp(base.y, tip.y, 0.14) };
-    return { base, tip, reel };
+    return { base, tip, reel, angle0, angleMin, angleMax, L };
+  }
+
+  function updateAim(dt) {
+    const g = rodGeom();
+    if (pointerX !== null && state === 'idle') {
+      const rawAngle = Math.atan2(-(pointerY - g.base.y), pointerX - g.base.x);
+      aimAngleTarget = clamp(rawAngle, g.angleMin, g.angleMax);
+    }
+    aimAngle += (aimAngleTarget - aimAngle) * clamp(10 * dt, 0, 1);
   }
 
   // ---------- state machine ----------
@@ -323,7 +347,7 @@ html, body {
   function updateControlsUI() {
     switch (state) {
       case 'idle':
-        statusText.textContent = 'Zarzuć linkę do wody.';
+        statusText.textContent = 'Wyceluj i zarzuć linkę do wody.';
         actionBtn.textContent = 'Zarzuć';
         actionBtn.className = 'btn btn-gold';
         actionBtn.disabled = false;
@@ -365,7 +389,9 @@ html, body {
     if (state !== 'idle') return;
     const g = rodGeom();
     castFrom = { x: g.tip.x, y: g.tip.y };
-    castTarget = { x: rand(W * 0.26, W * 0.84), y: waterLine() + rand(-6, 6) };
+    const t = clamp((aimAngle - g.angleMin) / (g.angleMax - g.angleMin), 0, 1);
+    const targetX = lerp(W * 0.82, W * 0.18, t);
+    castTarget = { x: clamp(targetX + rand(-40, 40), W * 0.08, W * 0.92), y: waterLine() + rand(-6, 6) };
     bobber = { ...castFrom };
     setState('casting');
   }
@@ -523,6 +549,7 @@ html, body {
 
   function update(dt) {
     stateT += dt;
+    updateAim(dt);
     updateAmbientFish(dt);
     if (state === 'casting') updateCasting(dt);
     else if (state === 'waiting') updateWaiting(dt);
