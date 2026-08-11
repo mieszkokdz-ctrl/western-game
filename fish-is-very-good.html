@@ -221,6 +221,41 @@ html, body {
   }
   .shop-card .btn { width:100%; }
 
+  .bait-grid {
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; margin-bottom:20px;
+  }
+  .bait-card-item {
+    display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+    padding:16px 12px; border-radius:16px;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .bait-card-item.equipped { border-color:var(--sun); background:rgba(255,207,107,0.10); }
+  .bait-card-item.locked { opacity:0.72; }
+  .bait-icon { font-size:30px; line-height:1; }
+  .bait-name { font-weight:800; font-size:13.5px; color:var(--foam); }
+  .bait-desc { font-size:11px; font-weight:400; color:var(--foam-dim); line-height:1.4; min-height:44px; }
+  .bait-action-btn {
+    margin-top:2px; width:100%; padding:9px 10px; border-radius:999px; border:none;
+    font-family:'Reef Sans', sans-serif; font-weight:800; font-size:11px;
+    letter-spacing:0.03em; text-transform:uppercase; cursor:pointer;
+    color:var(--ink); background:linear-gradient(180deg, var(--sun), var(--sun-deep));
+    box-shadow:0 3px 0 #9a6b1d; transition:transform 0.08s ease, filter 0.15s ease;
+  }
+  .bait-action-btn:active { transform:translateY(2px); box-shadow:0 1px 0 #9a6b1d; }
+  .bait-action-btn:disabled {
+    cursor:default; color:var(--foam-dim); opacity:0.55;
+    background:linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+    box-shadow:0 3px 0 rgba(0,0,0,0.25);
+  }
+  .bait-action-btn.equipped-btn {
+    background:linear-gradient(180deg, var(--teal), var(--teal-deep)); box-shadow:0 3px 0 #1d6e5a; color:var(--ink);
+  }
+  @media (max-width:420px) {
+    .bait-grid { grid-template-columns:1fr 1fr; }
+    .bait-desc { min-height:0; }
+  }
+
 @media (prefers-reduced-motion: reduce) {
   .btn, #catchToast { transition:none; }
   .pulse { animation:none; }
@@ -268,10 +303,9 @@ html, body {
       <div class="shop-item">
         <div class="shop-item-info">
           <div class="shop-item-name">Przynęta</div>
-          <div class="shop-item-desc">Szybsze brania i większa szansa na rzadkie ryby.</div>
-          <div class="shop-item-level" id="baitLevelDots"></div>
+          <div class="shop-item-desc" id="baitEquippedDesc">🪱 Robak — uniwersalna, na każdą rybę</div>
         </div>
-        <button class="shop-buy-btn" id="baitBuyBtn">Kup</button>
+        <button class="shop-buy-btn" id="baitOpenBtn">Zmień</button>
       </div>
       <div class="shop-item">
         <div class="shop-item-info">
@@ -291,6 +325,17 @@ html, body {
       </div>
     </div>
     <button class="btn btn-gold" id="shopCloseBtn">Zamknij</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="baitScreen">
+  <div class="shop-card glass bait-card">
+    <div class="shop-header">
+      <div class="eyebrow-tag" style="margin-bottom:0;">wybierz przynętę</div>
+      <div class="shop-coins">🪙 <span id="baitCoinsVal">0</span></div>
+    </div>
+    <div class="bait-grid" id="baitGrid"></div>
+    <button class="btn btn-gold" id="baitBackBtn">Wróć</button>
   </div>
 </div>
 
@@ -329,6 +374,8 @@ html, body {
   const BEST_KEY = 'fishIsVeryGood_bestKg';
   const COINS_KEY = 'fishIsVeryGood_coins';
   const UPGRADES_KEY = 'fishIsVeryGood_upgrades';
+  const OWNED_BAITS_KEY = 'fishIsVeryGood_ownedBaits';
+  const EQUIPPED_BAIT_KEY = 'fishIsVeryGood_equippedBait';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -352,13 +399,26 @@ html, body {
   const shopScreen = document.getElementById('shopScreen');
   const shopCoinsVal = document.getElementById('shopCoinsVal');
   const shopCloseBtn = document.getElementById('shopCloseBtn');
+  const baitEquippedDesc = document.getElementById('baitEquippedDesc');
+  const baitOpenBtn = document.getElementById('baitOpenBtn');
+  const baitScreen = document.getElementById('baitScreen');
+  const baitGrid = document.getElementById('baitGrid');
+  const baitCoinsVal = document.getElementById('baitCoinsVal');
+  const baitBackBtn = document.getElementById('baitBackBtn');
 
   let bestKg = parseFloat(localStorage.getItem(BEST_KEY) || '0');
   let caughtCount = 0;
   let coins = parseInt(localStorage.getItem(COINS_KEY) || '0', 10);
-  let upgrades = { bait:0, rod:0, reel:0 };
+  let upgrades = { rod:0, reel:0 };
   try { Object.assign(upgrades, JSON.parse(localStorage.getItem(UPGRADES_KEY) || '{}')); } catch {}
   let shopOpen = false;
+
+  let ownedBaits = ['robak'];
+  try {
+    const saved = JSON.parse(localStorage.getItem(OWNED_BAITS_KEY) || '[]');
+    if (Array.isArray(saved)) ownedBaits = Array.from(new Set(['robak', ...saved]));
+  } catch {}
+  let equippedBait = localStorage.getItem(EQUIPPED_BAIT_KEY) || 'robak';
 
   const FISH_TYPES = [
     { name:'Płotka',       color:'#c7d2d6', fin:'#8fa3aa', minKg:0.10, maxKg:0.35, weight:38,  erratic:0.16, zone:0.34, rare:false, value:2 },
@@ -368,11 +428,38 @@ html, body {
     { name:'Sum',          color:'#6b5a4a', fin:'#40342a', minKg:3.00, maxKg:11.0, weight:5,   erratic:0.66, zone:0.18, rare:true,  value:45 },
     { name:'Złota Rybka',  color:'#ffcf6b', fin:'#d99a30', minKg:0.10, maxKg:0.30, weight:1.4, erratic:0.80, zone:0.14, glow:true, rare:true, value:80 },
   ];
+  const BAITS = [
+    { id:'robak',    name:'Robak',        icon:'🪱', price:0,
+      desc:'Dżdżownica — uniwersalna klasyka, bierze na nią prawie każda ryba.',
+      favors:null, biteMult:0.90 },
+    { id:'kukurydza', name:'Kukurydza',   icon:'🌽', price:70,
+      desc:'Słodka kukurydza z puszki — ulubiona przynęta karpi.',
+      favors:{ 'Karp':3.0 }, biteMult:1.0 },
+    { id:'gumowa',   name:'Gumowa rybka', icon:'🐠', price:130,
+      desc:'Miękka przynęta gumowa (twister) — kusi drapieżniki: szczupaka i suma.',
+      favors:{ 'Szczupak':2.4, 'Sum':1.7 }, biteMult:1.1 },
+    { id:'zywiec',   name:'Żywiec',       icon:'🐟', price:220,
+      desc:'Żywa rybka na haczyku — przyciąga naprawdę duże drapieżniki, ale trzeba cierpliwie czekać.',
+      favors:{ 'Sum':3.4, 'Szczupak':2.0 }, biteMult:1.55 },
+    { id:'bojka',    name:'Bojka',        icon:'🟤', price:190,
+      desc:'Karpiarska kulka proteinowa (boilie) — karpie biorą chętnie i są cięższe.',
+      favors:{ 'Karp':3.8 }, biteMult:1.15, sizeMult:1.15 },
+    { id:'ser',      name:'Ser',          icon:'🧀', price:250,
+      desc:'Niecodzienna, ale sprawdzona wśród sumiarzy przynęta o mocnym zapachu.',
+      favors:{ 'Sum':4.2 }, biteMult:1.3 },
+    { id:'blystka',  name:'Błystka',      icon:'✨', price:300,
+      desc:'Wirująca metalowa błystka — błyszczy jak łuski, kusi nawet złotą rybkę.',
+      favors:{ 'Złota Rybka':3.6, 'Szczupak':1.4 }, biteMult:0.95 },
+  ];
+  function currentBait() {
+    return BAITS.find(b => b.id === equippedBait) || BAITS[0];
+  }
   function pickFishType() {
-    const baitLvl = upgrades.bait || 0;
+    const bait = currentBait();
     let total = 0;
     const weights = FISH_TYPES.map(f => {
-      const w = f.weight * Math.pow(f.rare ? 1.35 : 0.85, baitLvl);
+      const favor = bait.favors && bait.favors[f.name] ? bait.favors[f.name] : 1;
+      const w = f.weight * favor;
       total += w;
       return w;
     });
@@ -385,7 +472,6 @@ html, body {
   }
 
   const UPGRADE_DEFS = [
-    { key:'bait', name:'Przynęta',   descKey:'baitLevelDots', btnKey:'baitBuyBtn', costs:[50, 140, 320] },
     { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350] },
     { key:'reel', name:'Kołowrotek', descKey:'reelLevelDots', btnKey:'reelBuyBtn', costs:[45, 130, 300] },
   ];
@@ -393,10 +479,13 @@ html, body {
   function updateCoinsUI() {
     coinsVal.textContent = coins;
     shopCoinsVal.textContent = coins;
+    baitCoinsVal.textContent = coins;
   }
 
   function renderShop() {
     updateCoinsUI();
+    const bait = currentBait();
+    baitEquippedDesc.textContent = bait.icon + ' ' + bait.name + ' — wyposażona przynęta';
     for (const def of UPGRADE_DEFS) {
       const lvl = upgrades[def.key] || 0;
       const dotsEl = document.getElementById(def.descKey);
@@ -446,6 +535,72 @@ html, body {
   for (const def of UPGRADE_DEFS) {
     document.getElementById(def.btnKey).addEventListener('click', () => buyUpgrade(def.key));
   }
+
+  function renderBaitScreen() {
+    updateCoinsUI();
+    baitGrid.innerHTML = '';
+    for (const bait of BAITS) {
+      const owned = ownedBaits.includes(bait.id);
+      const equipped = equippedBait === bait.id;
+      const card = document.createElement('div');
+      card.className = 'bait-card-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+
+      const icon = document.createElement('div');
+      icon.className = 'bait-icon';
+      icon.textContent = bait.icon;
+      const name = document.createElement('div');
+      name.className = 'bait-name';
+      name.textContent = bait.name;
+      const desc = document.createElement('div');
+      desc.className = 'bait-desc';
+      desc.textContent = bait.desc;
+      const btn = document.createElement('button');
+      btn.className = 'bait-action-btn';
+      if (equipped) {
+        btn.textContent = 'Wyposażona';
+        btn.classList.add('equipped-btn');
+        btn.disabled = true;
+      } else if (owned) {
+        btn.textContent = 'Wybierz';
+      } else {
+        btn.textContent = 'Kup — ' + bait.price + ' 🪙';
+        btn.disabled = coins < bait.price;
+      }
+      btn.addEventListener('click', () => selectOrBuyBait(bait.id));
+
+      card.appendChild(icon); card.appendChild(name); card.appendChild(desc); card.appendChild(btn);
+      baitGrid.appendChild(card);
+    }
+  }
+
+  function selectOrBuyBait(id) {
+    const bait = BAITS.find(b => b.id === id);
+    if (!bait) return;
+    if (!ownedBaits.includes(id)) {
+      if (coins < bait.price) return;
+      coins -= bait.price;
+      ownedBaits.push(id);
+      localStorage.setItem(COINS_KEY, String(coins));
+      localStorage.setItem(OWNED_BAITS_KEY, JSON.stringify(ownedBaits));
+    }
+    equippedBait = id;
+    localStorage.setItem(EQUIPPED_BAIT_KEY, equippedBait);
+    renderBaitScreen();
+    renderShop();
+  }
+
+  function openBaitScreen() {
+    shopScreen.classList.add('hidden');
+    baitScreen.classList.remove('hidden');
+    renderBaitScreen();
+  }
+  function closeBaitScreen() {
+    baitScreen.classList.add('hidden');
+    shopScreen.classList.remove('hidden');
+    renderShop();
+  }
+  baitOpenBtn.addEventListener('click', openBaitScreen);
+  baitBackBtn.addEventListener('click', closeBaitScreen);
 
   // ---------- geometry ----------
   function waterLine() { return H * 0.58; }
@@ -571,7 +726,7 @@ html, body {
   }
 
   function beginWaiting() {
-    waitDuration = rand(1.2, 3.4) * Math.pow(0.88, upgrades.bait || 0);
+    waitDuration = rand(1.2, 3.4) * currentBait().biteMult;
     addRipple(bobber.x, bobber.y, true);
     setState('waiting');
   }
@@ -599,7 +754,7 @@ html, body {
     const fish = currentFish;
     currentFish = null;
     if (caught) {
-      const kg = rand(fish.minKg, fish.maxKg);
+      const kg = rand(fish.minKg, fish.maxKg) * (currentBait().sizeMult || 1);
       caughtCount++;
       caughtVal.textContent = caughtCount;
       const coinsEarned = Math.round(fish.value + kg * 3);
@@ -665,7 +820,7 @@ html, body {
     controls.style.display = 'flex';
     shopTile.style.display = 'flex';
     bestVal.textContent = bestKg.toFixed(1);
-    updateCoinsUI();
+    renderShop();
     setState('idle');
   });
 
