@@ -188,7 +188,7 @@ html, body {
 
   #hud .coins { font-size:13px; font-weight:700; color:var(--sun); margin-top:3px; }
 
-  #shopTile, #mapTile, #gablotaTile, #dailyTile {
+  #shopTile, #mapTile, #gablotaTile, #dailyTile, #boatTile {
     position:fixed; left:16px; bottom:16px; z-index:12;
     display:none; flex-direction:column; align-items:center; justify-content:center; gap:2px;
     width:72px; height:72px; border-radius:18px; cursor:pointer;
@@ -198,11 +198,12 @@ html, body {
   #mapTile { bottom:100px; }
   #gablotaTile { bottom:184px; }
   #dailyTile { bottom:268px; }
-  #shopTile:hover, #mapTile:hover, #gablotaTile:hover, #dailyTile:hover { filter:brightness(1.1); }
-  #shopTile:active, #mapTile:active, #gablotaTile:active, #dailyTile:active { transform:translateY(3px) scale(0.97); }
-  #shopTile .shop-icon, #sellTile .shop-icon, #mapTile .shop-icon, #gablotaTile .shop-icon, #dailyTile .shop-icon { font-size:22px; line-height:1; }
-  #shopTile .shop-label, #sellTile .shop-label, #mapTile .shop-label, #gablotaTile .shop-label, #dailyTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
-  #shopTile.disabled, #sellTile.disabled, #mapTile.disabled, #gablotaTile.disabled, #dailyTile.disabled { opacity:0.35; pointer-events:none; }
+  #boatTile { bottom:352px; }
+  #shopTile:hover, #mapTile:hover, #gablotaTile:hover, #dailyTile:hover, #boatTile:hover { filter:brightness(1.1); }
+  #shopTile:active, #mapTile:active, #gablotaTile:active, #dailyTile:active, #boatTile:active { transform:translateY(3px) scale(0.97); }
+  #shopTile .shop-icon, #sellTile .shop-icon, #mapTile .shop-icon, #gablotaTile .shop-icon, #dailyTile .shop-icon, #boatTile .shop-icon { font-size:22px; line-height:1; }
+  #shopTile .shop-label, #sellTile .shop-label, #mapTile .shop-label, #gablotaTile .shop-label, #dailyTile .shop-label, #boatTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
+  #shopTile.disabled, #sellTile.disabled, #mapTile.disabled, #gablotaTile.disabled, #dailyTile.disabled, #boatTile.disabled { opacity:0.35; pointer-events:none; }
 
   #sellTile {
     position:fixed; right:16px; bottom:16px; z-index:12;
@@ -347,6 +348,11 @@ html, body {
   <div class="val"><span id="bestVal">0</span> kg</div>
 </div>
 
+<div id="boatTile" class="glass">
+  <div class="shop-icon">🚤</div>
+  <div class="shop-label">Łodzie</div>
+</div>
+
 <div id="dailyTile" class="glass">
   <div class="shop-icon">🎁</div>
   <div class="shop-label">Nagrody</div>
@@ -452,6 +458,17 @@ html, body {
   </div>
 </div>
 
+<div class="overlay hidden" id="boatScreen">
+  <div class="shop-card glass bait-card">
+    <div class="shop-header">
+      <div class="eyebrow-tag" style="margin-bottom:0;">wybierz łódź</div>
+      <div class="shop-coins">🪙 <span id="boatCoinsVal">0</span></div>
+    </div>
+    <div class="bait-grid" id="boatGrid"></div>
+    <button class="btn btn-gold" id="boatCloseBtn">Zamknij</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="dailyScreen">
   <div class="shop-card glass">
     <div class="shop-header">
@@ -533,6 +550,8 @@ html, body {
   const DAILY_STREAK_KEY = 'fishIsVeryGood_dailyStreak';
   const DAILY_LAST_CLAIM_KEY = 'fishIsVeryGood_dailyLastClaim';
   const HIPER_ROD_KEY = 'fishIsVeryGood_hasHiperRod';
+  const OWNED_BOATS_KEY = 'fishIsVeryGood_ownedBoats';
+  const EQUIPPED_BOAT_KEY = 'fishIsVeryGood_equippedBoat';
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -572,6 +591,7 @@ html, body {
   const sellList = document.getElementById('sellList');
   const sellCoinsVal = document.getElementById('sellCoinsVal');
   const sellTotalVal = document.getElementById('sellTotalVal');
+  const sellTotalRow = document.getElementById('sellTotalRow');
   const sellAllBtn = document.getElementById('sellAllBtn');
   const sellCloseBtn = document.getElementById('sellCloseBtn');
   const mapTile = document.getElementById('mapTile');
@@ -597,6 +617,11 @@ html, body {
   const dailyStatusText = document.getElementById('dailyStatusText');
   const dailyClaimBtn = document.getElementById('dailyClaimBtn');
   const dailyCloseBtn = document.getElementById('dailyCloseBtn');
+  const boatTile = document.getElementById('boatTile');
+  const boatScreen = document.getElementById('boatScreen');
+  const boatGrid = document.getElementById('boatGrid');
+  const boatCoinsVal = document.getElementById('boatCoinsVal');
+  const boatCloseBtn = document.getElementById('boatCloseBtn');
 
   let bestKg = parseFloat(localStorage.getItem(BEST_KEY) || '0');
   let caughtCount = 0;
@@ -608,7 +633,15 @@ html, body {
   let mapOpen = false;
   let gablotaOpen = false;
   let dailyOpen = false;
+  let boatOpen = false;
   let pendingCatch = null;
+
+  let ownedBoats = ['brzeg'];
+  try {
+    const savedBoats = JSON.parse(localStorage.getItem(OWNED_BOATS_KEY) || '[]');
+    if (Array.isArray(savedBoats)) ownedBoats = Array.from(new Set(['brzeg', ...savedBoats]));
+  } catch {}
+  let equippedBoat = localStorage.getItem(EQUIPPED_BOAT_KEY) || 'brzeg';
 
   let dailyStreak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
   let dailyLastClaim = localStorage.getItem(DAILY_LAST_CLAIM_KEY) || null;
@@ -684,6 +717,24 @@ html, body {
   ];
   function currentBait() {
     return BAITS.find(b => b.id === equippedBait) || BAITS[0];
+  }
+
+  const BOATS = [
+    { id:'brzeg',      name:'Łowienie z brzegu', icon:'🧍', price:0,
+      desc:'Bez łódki, ale zawsze pod ręką. Brak premii do zarobku.', sellMult:1.00 },
+    { id:'wioslowka',  name:'Łódka wiosłowa', icon:'🚣', price:150,
+      desc:'Dopłyniesz kawałek od brzegu — +10% monet ze sprzedaży ryb.', sellMult:1.10 },
+    { id:'kajak',      name:'Kajak', icon:'🛶', price:280,
+      desc:'Lekki i zwrotny — +18% monet ze sprzedaży ryb.', sellMult:1.18 },
+    { id:'motorowka',  name:'Łódka motorowa', icon:'🚤', price:500,
+      desc:'Silnik = szybszy dostęp do najlepszych łowisk — +30% monet ze sprzedaży ryb.', sellMult:1.30 },
+    { id:'kuter',      name:'Kuter rybacki', icon:'🛥️', price:900,
+      desc:'Profesjonalny sprzęt połowowy — +45% monet ze sprzedaży ryb.', sellMult:1.45 },
+    { id:'jacht',      name:'Jacht', icon:'🛳️', price:1500,
+      desc:'Najlepsi kupcy czekają w porcie — +65% monet ze sprzedaży ryb.', sellMult:1.65 },
+  ];
+  function currentBoat() {
+    return BOATS.find(b => b.id === equippedBoat) || BOATS[0];
   }
 
   const ROD_STYLES = [
@@ -923,13 +974,17 @@ html, body {
       row.appendChild(info); row.appendChild(value);
       sellList.appendChild(row);
     }
-    sellTotalVal.textContent = total;
+    const boatMult = currentBoat().sellMult;
+    const boosted = Math.round(total * boatMult);
+    sellTotalVal.textContent = boosted;
+    sellTotalRow.title = boatMult > 1 ? ('Bonus łodzi: ×' + boatMult.toFixed(2)) : '';
     sellAllBtn.disabled = false;
   }
 
   function sellAllFish() {
     if (inventory.length === 0) return;
-    const total = inventory.reduce((s, i) => s + i.coinsEarned, 0);
+    const base = inventory.reduce((s, i) => s + i.coinsEarned, 0);
+    const total = Math.round(base * currentBoat().sellMult);
     coins += total;
     inventory = [];
     localStorage.setItem(COINS_KEY, String(coins));
@@ -1177,6 +1232,71 @@ html, body {
   mapTile.addEventListener('click', openMap);
   mapCloseBtn.addEventListener('click', closeMap);
 
+  function renderBoatScreen() {
+    boatCoinsVal.textContent = coins;
+    boatGrid.innerHTML = '';
+    for (const boat of BOATS) {
+      const owned = ownedBoats.includes(boat.id);
+      const equipped = equippedBoat === boat.id;
+      const card = document.createElement('div');
+      card.className = 'bait-card-item' + (equipped ? ' equipped' : '') + (!owned ? ' locked' : '');
+
+      const icon = document.createElement('div');
+      icon.className = 'bait-icon';
+      icon.textContent = boat.icon;
+      const name = document.createElement('div');
+      name.className = 'bait-name';
+      name.textContent = boat.name;
+      const desc = document.createElement('div');
+      desc.className = 'bait-desc';
+      desc.textContent = boat.desc;
+      const btn = document.createElement('button');
+      btn.className = 'bait-action-btn';
+      if (equipped) {
+        btn.textContent = 'Używana';
+        btn.classList.add('equipped-btn');
+        btn.disabled = true;
+      } else if (owned) {
+        btn.textContent = 'Wybierz';
+      } else {
+        btn.textContent = 'Kup — ' + boat.price + ' 🪙';
+        btn.disabled = coins < boat.price;
+      }
+      btn.addEventListener('click', () => selectOrBuyBoat(boat.id));
+
+      card.appendChild(icon); card.appendChild(name); card.appendChild(desc); card.appendChild(btn);
+      boatGrid.appendChild(card);
+    }
+  }
+
+  function selectOrBuyBoat(id) {
+    const boat = BOATS.find(b => b.id === id);
+    if (!boat) return;
+    if (!ownedBoats.includes(id)) {
+      if (coins < boat.price) return;
+      coins -= boat.price;
+      ownedBoats.push(id);
+      localStorage.setItem(COINS_KEY, String(coins));
+      localStorage.setItem(OWNED_BOATS_KEY, JSON.stringify(ownedBoats));
+    }
+    equippedBoat = id;
+    localStorage.setItem(EQUIPPED_BOAT_KEY, equippedBoat);
+    renderBoatScreen();
+  }
+
+  function openBoat() {
+    if (boatTile.classList.contains('disabled')) return;
+    boatOpen = true;
+    boatScreen.classList.remove('hidden');
+    renderBoatScreen();
+  }
+  function closeBoat() {
+    boatOpen = false;
+    boatScreen.classList.add('hidden');
+  }
+  boatTile.addEventListener('click', openBoat);
+  boatCloseBtn.addEventListener('click', closeBoat);
+
   // ---------- geometry ----------
   function waterLine() { return H * 0.58; }
 
@@ -1258,6 +1378,7 @@ html, body {
     mapTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     gablotaTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     dailyTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
+    boatTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     switch (state) {
       case 'idle':
         statusText.textContent = 'Wyceluj i zarzuć linkę do wody.';
@@ -1470,6 +1591,7 @@ html, body {
     mapTile.style.display = 'flex';
     gablotaTile.style.display = 'flex';
     dailyTile.style.display = 'flex';
+    boatTile.style.display = 'flex';
     bestVal.textContent = bestKg.toFixed(1);
     renderShop();
     updateSellBadge();
@@ -1853,7 +1975,7 @@ html, body {
   function loop(t) {
     const dt = clamp((t - lastT) / 1000, 0, 0.05);
     lastT = t;
-    if (started && !shopOpen && !sellOpen && !mapOpen && !gablotaOpen && !dailyOpen) update(dt);
+    if (started && !shopOpen && !sellOpen && !mapOpen && !gablotaOpen && !dailyOpen && !boatOpen) update(dt);
     draw();
     requestAnimationFrame(loop);
   }
