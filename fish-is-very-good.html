@@ -523,13 +523,13 @@ html, body {
   const FISH_TYPES = [
     { name:'Płotka',       color:'#c7d2d6', fin:'#8fa3aa', minKg:0.10, maxKg:0.35, weight:38,  erratic:0.16, zone:0.34, rare:false, value:2,  locations:['jezioro','rzeka'] },
     { name:'Okoń',         color:'#8fbf5e', fin:'#527d34', minKg:0.15, maxKg:0.55, weight:28,  erratic:0.26, zone:0.30, rare:false, value:4,  locations:['jezioro','rzeka'] },
-    { name:'Karp',         color:'#c99a53', fin:'#8a6530', minKg:0.80, maxKg:3.20, weight:16,  erratic:0.40, zone:0.25, rare:true,  value:12, locations:['jezioro'] },
-    { name:'Szczupak',     color:'#5c7a52', fin:'#38492f', minKg:1.00, maxKg:4.80, weight:10,  erratic:0.54, zone:0.21, rare:true,  value:20, locations:['jezioro','rzeka'] },
-    { name:'Sum',          color:'#6b5a4a', fin:'#40342a', minKg:3.00, maxKg:11.0, weight:5,   erratic:0.66, zone:0.18, rare:true,  value:45, locations:['jezioro','rzeka'] },
-    { name:'Złota Rybka',  color:'#ffcf6b', fin:'#d99a30', minKg:0.10, maxKg:0.30, weight:1.4, erratic:0.80, zone:0.14, glow:true, rare:true, value:80, locations:['jezioro'] },
+    { name:'Karp',         color:'#c99a53', fin:'#8a6530', minKg:0.80, maxKg:3.20, weight:16,  erratic:0.40, zone:0.27, rare:true,  value:12, locations:['jezioro'] },
+    { name:'Szczupak',     color:'#5c7a52', fin:'#38492f', minKg:1.00, maxKg:4.80, weight:10,  erratic:0.54, zone:0.24, rare:true,  value:20, locations:['jezioro','rzeka'] },
+    { name:'Sum',          color:'#6b5a4a', fin:'#40342a', minKg:3.00, maxKg:11.0, weight:5,   erratic:0.66, zone:0.21, rare:true,  value:45, locations:['jezioro','rzeka'] },
+    { name:'Złota Rybka',  color:'#ffcf6b', fin:'#d99a30', minKg:0.10, maxKg:0.30, weight:1.4, erratic:0.80, zone:0.17, glow:true, rare:true, value:80, locations:['jezioro'] },
     { name:'Śledź',        color:'#9fb8c9', fin:'#5f7c8f', minKg:0.10, maxKg:0.30, weight:34,  erratic:0.20, zone:0.32, rare:false, value:3,  locations:['morze'] },
-    { name:'Makrela',      color:'#3f6e8c', fin:'#20455c', minKg:0.30, maxKg:1.20, weight:20,  erratic:0.42, zone:0.24, rare:false, value:9,  locations:['morze'] },
-    { name:'Dorsz',        color:'#8a9a8a', fin:'#5a6a5a', minKg:1.50, maxKg:8.00, weight:7,   erratic:0.58, zone:0.19, rare:true,  value:38, locations:['morze'] },
+    { name:'Makrela',      color:'#3f6e8c', fin:'#20455c', minKg:0.30, maxKg:1.20, weight:20,  erratic:0.42, zone:0.26, rare:false, value:9,  locations:['morze'] },
+    { name:'Dorsz',        color:'#8a9a8a', fin:'#5a6a5a', minKg:1.50, maxKg:8.00, weight:7,   erratic:0.58, zone:0.22, rare:true,  value:38, locations:['morze'] },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -1135,10 +1135,10 @@ html, body {
     const fish = currentFish;
     fishRetarget -= dt;
     if (fishRetarget <= 0) {
-      fishRetarget = rand(0.5, 1.5) - fish.erratic * 0.5;
+      fishRetarget = rand(0.6, 1.6) - fish.erratic * 0.3;
       fishTargetY = clamp(rand(0.08, 0.92), 0.08, 0.92);
     }
-    const easeSpeed = 1.3 + fish.erratic * 3.2;
+    const easeSpeed = 1.3 + fish.erratic * 2.4;
     fishY += (fishTargetY - fishY) * clamp(easeSpeed * dt, 0, 1);
 
     const lift = 2.7 + 0.35 * (upgrades.reel || 0), gravity = 1.9, friction = Math.pow(0.05, dt);
@@ -1150,7 +1150,7 @@ html, body {
     const zoneHalf = fishZone(fish) / 2;
     const overlap = Math.abs(fishY - catchY) < zoneHalf;
     const fillRate = 0.30;
-    const drainRate = 0.16 + fish.erratic * 0.22;
+    const drainRate = 0.09 + fish.erratic * 0.18;
     progress += (overlap ? fillRate : -drainRate) * dt;
     progress = clamp(progress, 0, 1);
 
