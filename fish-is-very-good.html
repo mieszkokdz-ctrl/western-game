@@ -379,7 +379,7 @@ html, body {
       <div class="shop-item">
         <div class="shop-item-info">
           <div class="shop-item-name">Kołowrotek</div>
-          <div class="shop-item-desc">Więcej czasu na zacięcie i szybsze zwijanie.</div>
+          <div class="shop-item-desc" id="reelEquippedDesc">Poziom 0/4 — więcej czasu na zacięcie i szybsze zwijanie.</div>
           <div class="shop-item-level" id="reelLevelDots"></div>
         </div>
         <button class="shop-buy-btn" id="reelBuyBtn">Kup</button>
@@ -506,6 +506,7 @@ html, body {
   const baitCoinsVal = document.getElementById('baitCoinsVal');
   const baitBackBtn = document.getElementById('baitBackBtn');
   const rodEquippedDesc = document.getElementById('rodEquippedDesc');
+  const reelEquippedDesc = document.getElementById('reelEquippedDesc');
   const sellTile = document.getElementById('sellTile');
   const sellBadge = document.getElementById('sellBadge');
   const sellScreen = document.getElementById('sellScreen');
@@ -613,10 +614,13 @@ html, body {
     { name:'Grafitowa', rodOuter:'#2c2c34', rodInner:'#565662', guide:'rgba(0,0,0,0.5)',    reelBody:'#1b1b20', reelFace:'#9aa4b0', reelArm:'#2c2c34', accent:'#6fd7ff' },
     { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0' },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
+    { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
   ];
   function currentRodStyle() {
     return ROD_STYLES[clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 1)];
   }
+
+  const REEL_RING_COLORS = [null, 'rgba(170,205,215,0.55)', '#6fd7ff', '#3fe8ff', '#eafcff'];
 
   const LOCATIONS = [
     { id:'jezioro', name:'Jezioro Leśne', icon:'🌲', price:0,
@@ -653,8 +657,8 @@ html, body {
   }
 
   const UPGRADE_DEFS = [
-    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350] },
-    { key:'reel', name:'Kołowrotek', descKey:'reelLevelDots', btnKey:'reelBuyBtn', costs:[45, 130, 300] },
+    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350, 700] },
+    { key:'reel', name:'Kołowrotek', descKey:'reelLevelDots', btnKey:'reelBuyBtn', costs:[45, 130, 300, 600] },
   ];
 
   function updateCoinsUI() {
@@ -670,7 +674,12 @@ html, body {
     const bait = currentBait();
     baitEquippedDesc.textContent = bait.icon + ' ' + bait.name + ' — wyposażona przynęta';
     const rodStyle = currentRodStyle();
-    rodEquippedDesc.textContent = rodStyle.name + ' — większa strefa chwytu przy zwijaniu żyłki.';
+    const rodLvl = upgrades.rod || 0;
+    const rodMax = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
+    rodEquippedDesc.textContent = rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
+    const reelLvl = upgrades.reel || 0;
+    const reelMax = UPGRADE_DEFS.find(d => d.key === 'reel').costs.length;
+    reelEquippedDesc.textContent = 'Poziom ' + reelLvl + '/' + reelMax + ' — więcej czasu na zacięcie i szybsze zwijanie.';
     for (const def of UPGRADE_DEFS) {
       const lvl = upgrades[def.key] || 0;
       const dotsEl = document.getElementById(def.descKey);
@@ -682,7 +691,7 @@ html, body {
       }
       const btn = document.getElementById(def.btnKey);
       if (lvl >= def.costs.length) {
-        btn.textContent = 'MAX';
+        btn.textContent = 'MAX (' + lvl + '/' + def.costs.length + ')';
         btn.disabled = true;
       } else {
         const cost = def.costs[lvl];
@@ -1469,6 +1478,16 @@ html, body {
 
     ctx.save();
     ctx.translate(g.reel.x, g.reel.y);
+    const reelLvl = clamp(upgrades.reel || 0, 0, REEL_RING_COLORS.length - 1);
+    const ringColor = REEL_RING_COLORS[reelLvl];
+    if (ringColor) {
+      ctx.save();
+      ctx.strokeStyle = ringColor;
+      ctx.lineWidth = 2 + reelLvl * 0.5;
+      if (reelLvl >= 3) { ctx.shadowColor = ringColor; ctx.shadowBlur = 10; }
+      ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
     ctx.fillStyle = style.reelBody;
     ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = style.reelFace;
