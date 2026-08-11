@@ -89,6 +89,15 @@ html, body {
   min-height:18px; text-align:center;
 }
 
+#powerBarWrap {
+  width:220px; height:18px; padding:3px; border-radius:999px;
+  pointer-events:none;
+}
+#powerBarFill {
+  height:100%; width:0%; border-radius:999px;
+  background:hsl(140,75%,50%);
+}
+
 .btn {
   pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none;
   padding:16px 46px; font-family:'Reef Sans', sans-serif;
@@ -368,6 +377,9 @@ html, body {
 
 <div id="controls" style="display:none;">
   <div id="statusText">Zarzuć linkę do wody.</div>
+  <div id="powerBarWrap" class="glass" style="display:none;">
+    <div id="powerBarFill"></div>
+  </div>
   <button class="btn btn-gold" id="actionBtn">Zarzuć</button>
 </div>
 
@@ -533,6 +545,8 @@ html, body {
   const coinsVal = document.getElementById('coinsVal');
   const statusText = document.getElementById('statusText');
   const actionBtn = document.getElementById('actionBtn');
+  const powerBarWrap = document.getElementById('powerBarWrap');
+  const powerBarFill = document.getElementById('powerBarFill');
   const startScreen = document.getElementById('startScreen');
   const startBtn = document.getElementById('startBtn');
   const toast = document.getElementById('catchToast');
@@ -1192,7 +1206,12 @@ html, body {
 
   let castFrom = { x:0, y:0 };
   let castTarget = { x:0, y:0 };
-  const CAST_DURATION = 0.55;
+  let castDuration = 0.55;
+  let castPower = 0.6;
+  let charging = false;
+  let chargeElapsed = 0;
+  let chargePower = 0;
+  const CHARGE_OMEGA = 2 * Math.PI / 1.3;
   let waitDuration = 2;
   const BITE_WINDOW_BASE = 0.9;
   function biteWindow() { return BITE_WINDOW_BASE + 0.25 * (upgrades.reel || 0); }
@@ -1271,15 +1290,43 @@ html, body {
     }
   }
 
-  function startCast() {
+  function startCast(power) {
     if (state !== 'idle') return;
+    castPower = clamp(power === undefined ? 0.6 : power, 0, 1);
     const g = rodGeom();
     castFrom = { x: g.tip.x, y: g.tip.y };
     const t = clamp((aimAngle - g.angleMin) / (g.angleMax - g.angleMin), 0, 1);
-    const targetX = lerp(W * 0.82, W * 0.18, t);
-    castTarget = { x: clamp(targetX + rand(-40, 40), W * 0.08, W * 0.92), y: waterLine() + rand(-6, 6) };
+    const targetXFull = lerp(W * 0.82, W * 0.18, t);
+    const reach = 0.3 + 0.7 * castPower;
+    const targetX = lerp(castFrom.x, targetXFull, reach);
+    castTarget = { x: clamp(targetX + rand(-30, 30), W * 0.08, W * 0.92), y: waterLine() + rand(-6, 6) };
+    castDuration = 0.4 + 0.35 * castPower;
     bobber = { ...castFrom };
     setState('casting');
+  }
+
+  function startCharging() {
+    if (state !== 'idle') return;
+    charging = true;
+    chargeElapsed = 0;
+    chargePower = 0;
+    powerBarFill.style.width = '0%';
+    powerBarWrap.style.display = 'flex';
+    statusText.textContent = 'Puść, żeby zarzucić z tą mocą!';
+  }
+
+  function releaseCharge() {
+    if (!charging) return;
+    charging = false;
+    powerBarWrap.style.display = 'none';
+    startCast(chargePower);
+  }
+
+  function updateCharge(dt) {
+    chargeElapsed += dt;
+    chargePower = (1 - Math.cos(chargeElapsed * CHARGE_OMEGA)) / 2;
+    powerBarFill.style.width = (chargePower * 100).toFixed(0) + '%';
+    powerBarFill.style.background = 'hsl(' + (140 - chargePower * 140).toFixed(0) + ',75%,50%)';
   }
 
   function beginWaiting() {
@@ -1380,11 +1427,14 @@ html, body {
 
   // ---------- input ----------
   function onPress() {
-    if (state === 'idle') startCast();
+    if (state === 'idle') startCharging();
     else if (state === 'bite') setHook();
     else if (state === 'reeling') holding = true;
   }
-  function onRelease() { holding = false; }
+  function onRelease() {
+    holding = false;
+    if (charging) releaseCharge();
+  }
 
   actionBtn.addEventListener('pointerdown', e => { e.preventDefault(); onPress(); });
   actionBtn.addEventListener('pointerup', onRelease);
@@ -1433,10 +1483,10 @@ html, body {
   }
 
   function updateCasting(dt) {
-    const t = clamp(stateT / CAST_DURATION, 0, 1);
+    const t = clamp(stateT / castDuration, 0, 1);
     const ease = 1 - (1 - t) * (1 - t);
     bobber.x = lerp(castFrom.x, castTarget.x, ease);
-    const arcH = 90 * Math.sin(Math.PI * t);
+    const arcH = (55 + 70 * castPower) * Math.sin(Math.PI * t);
     bobber.y = lerp(castFrom.y, castTarget.y, ease) - arcH;
     if (t >= 1) { bobber = { ...castTarget }; beginWaiting(); }
   }
@@ -1481,6 +1531,7 @@ html, body {
   function update(dt) {
     stateT += dt;
     updateAim(dt);
+    if (charging) updateCharge(dt);
     updateAmbientFish(dt);
     if (state === 'casting') updateCasting(dt);
     else if (state === 'waiting') updateWaiting(dt);
