@@ -98,6 +98,32 @@ html, body {
   background:hsl(140,75%,50%);
 }
 
+#boatDriveControls {
+  display:flex; align-items:center; gap:10px; margin-bottom:4px;
+}
+#boatDriveControls .btn {
+  padding:12px 16px; font-size:12px; white-space:nowrap;
+}
+#boatDistanceWrap {
+  width:130px; height:14px; padding:3px; border-radius:999px;
+}
+#boatDistanceFill {
+  height:100%; width:0%; border-radius:999px;
+  background:linear-gradient(90deg, var(--teal), var(--sun));
+  transition:width 0.1s linear;
+}
+
+#returnToShoreBtn {
+  position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:12;
+  padding:9px 18px; border-radius:999px; cursor:pointer;
+  font-size:12.5px; font-weight:700; color:var(--foam);
+  pointer-events:auto; -webkit-user-select:none; user-select:none;
+  transition:filter 0.15s ease;
+}
+#returnToShoreBtn:hover { filter:brightness(1.1); }
+#returnToShoreBtn:active { transform:translateX(-50%) translateY(2px); }
+#returnToShoreBtn.disabled { opacity:0.35; pointer-events:none; }
+
 .btn {
   pointer-events:auto; touch-action:none; -webkit-user-select:none; user-select:none;
   padding:16px 46px; font-family:'Reef Sans', sans-serif;
@@ -386,8 +412,17 @@ html, body {
   <div id="powerBarWrap" class="glass" style="display:none;">
     <div id="powerBarFill"></div>
   </div>
+  <div id="boatDriveControls" style="display:none;">
+    <button class="btn btn-teal" id="boatBackBtnDrive">◀ W tył</button>
+    <div id="boatDistanceWrap" class="glass">
+      <div id="boatDistanceFill"></div>
+    </div>
+    <button class="btn btn-teal" id="boatFwdBtnDrive">W przód ▶</button>
+  </div>
   <button class="btn btn-gold" id="actionBtn">Zarzuć</button>
 </div>
+
+<div id="returnToShoreBtn" class="glass" style="display:none;">🏖️ Wróć na brzeg</div>
 
 <div id="catchToast" class="glass">
   <canvas id="toastFishCanvas" class="toast-fish-canvas" width="120" height="80"></canvas>
@@ -465,7 +500,8 @@ html, body {
       <div class="shop-coins">🪙 <span id="boatCoinsVal">0</span></div>
     </div>
     <div class="bait-grid" id="boatGrid"></div>
-    <button class="btn btn-gold" id="boatCloseBtn">Zamknij</button>
+    <button class="btn btn-teal" id="setSailBtn">Wypłyń łódką</button>
+    <button class="shop-buy-btn" id="boatCloseBtn" style="width:100%; margin-top:10px; padding:12px;">Zamknij</button>
   </div>
 </div>
 
@@ -622,6 +658,12 @@ html, body {
   const boatGrid = document.getElementById('boatGrid');
   const boatCoinsVal = document.getElementById('boatCoinsVal');
   const boatCloseBtn = document.getElementById('boatCloseBtn');
+  const setSailBtn = document.getElementById('setSailBtn');
+  const boatDriveControls = document.getElementById('boatDriveControls');
+  const boatBackBtnDrive = document.getElementById('boatBackBtnDrive');
+  const boatFwdBtnDrive = document.getElementById('boatFwdBtnDrive');
+  const boatDistanceFill = document.getElementById('boatDistanceFill');
+  const returnToShoreBtn = document.getElementById('returnToShoreBtn');
 
   let bestKg = parseFloat(localStorage.getItem(BEST_KEY) || '0');
   let caughtCount = 0;
@@ -635,6 +677,12 @@ html, body {
   let dailyOpen = false;
   let boatOpen = false;
   let pendingCatch = null;
+
+  let viewMode = 'shore';
+  let boatPos = 0;
+  let boatVel = 0;
+  let boatForwardHeld = false;
+  let boatBackwardHeld = false;
 
   let ownedBoats = ['brzeg'];
   try {
@@ -774,10 +822,12 @@ html, body {
   function pickFishType() {
     const bait = currentBait();
     const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation));
+    const boatBonus = viewMode === 'boat' ? (1 + boatPos * 1.4) : 1;
     let total = 0;
     const weights = pool.map(f => {
       const favor = bait.favors && bait.favors[f.name] ? bait.favors[f.name] : 1;
-      const w = f.weight * favor;
+      const rareMult = f.rare ? boatBonus : 1;
+      const w = f.weight * favor * rareMult;
       total += w;
       return w;
     });
@@ -1234,6 +1284,8 @@ html, body {
 
   function renderBoatScreen() {
     boatCoinsVal.textContent = coins;
+    setSailBtn.disabled = !canSail();
+    setSailBtn.textContent = canSail() ? 'Wypłyń łódką' : 'Kup łódź, żeby wypłynąć';
     boatGrid.innerHTML = '';
     for (const boat of BOATS) {
       const owned = ownedBoats.includes(boat.id);
@@ -1297,17 +1349,76 @@ html, body {
   boatTile.addEventListener('click', openBoat);
   boatCloseBtn.addEventListener('click', closeBoat);
 
+  function canSail() { return equippedBoat !== 'brzeg'; }
+
+  function enterBoatMode() {
+    if (!canSail() || state !== 'idle') return;
+    viewMode = 'boat';
+    boatPos = 0;
+    boatVel = 0;
+    aimAngle = null;
+    aimAngleTarget = null;
+    closeBoat();
+    boatDriveControls.style.display = 'flex';
+    returnToShoreBtn.style.display = 'block';
+    boatDistanceFill.style.width = '0%';
+  }
+
+  function exitBoatMode() {
+    if (state !== 'idle') return;
+    viewMode = 'shore';
+    boatForwardHeld = false;
+    boatBackwardHeld = false;
+    aimAngle = null;
+    aimAngleTarget = null;
+    boatDriveControls.style.display = 'none';
+    returnToShoreBtn.style.display = 'none';
+  }
+
+  function updateBoatDrive(dt) {
+    const accel = 1.4, friction = Math.pow(0.06, dt);
+    if (boatForwardHeld) boatVel += accel * dt;
+    if (boatBackwardHeld) boatVel -= accel * dt;
+    boatVel *= friction;
+    boatVel = clamp(boatVel, -0.6, 0.6);
+    boatPos = clamp(boatPos + boatVel * dt, 0, 1);
+    boatDistanceFill.style.width = (boatPos * 100).toFixed(0) + '%';
+  }
+
+  setSailBtn.addEventListener('click', enterBoatMode);
+  returnToShoreBtn.addEventListener('click', exitBoatMode);
+  boatBackBtnDrive.addEventListener('pointerdown', e => { e.preventDefault(); boatBackwardHeld = true; });
+  boatBackBtnDrive.addEventListener('pointerup', () => { boatBackwardHeld = false; });
+  boatBackBtnDrive.addEventListener('pointerleave', () => { boatBackwardHeld = false; });
+  boatBackBtnDrive.addEventListener('pointercancel', () => { boatBackwardHeld = false; });
+  boatFwdBtnDrive.addEventListener('pointerdown', e => { e.preventDefault(); boatForwardHeld = true; });
+  boatFwdBtnDrive.addEventListener('pointerup', () => { boatForwardHeld = false; });
+  boatFwdBtnDrive.addEventListener('pointerleave', () => { boatForwardHeld = false; });
+  boatFwdBtnDrive.addEventListener('pointercancel', () => { boatForwardHeld = false; });
+
   // ---------- geometry ----------
   function waterLine() { return H * 0.58; }
 
   let aimAngle = null, aimAngleTarget = null;
   const AIM_SPREAD = 35 * Math.PI / 180;
 
+  function boatPosition() {
+    return { x: lerp(W * 0.22, W * 0.78, boatPos), y: waterLine() - 6 };
+  }
+
   function rodGeom() {
-    const base = { x: W * 0.68, y: H + 24 };
-    const dx0 = -0.30 * W, dy0 = -(0.76 * H + 24);
-    const L = Math.hypot(dx0, dy0);
-    const angle0 = Math.atan2(-dy0, dx0);
+    let base, L, angle0;
+    if (viewMode === 'boat') {
+      const b = boatPosition();
+      base = { x: b.x + 22, y: b.y - 46 };
+      L = 120;
+      angle0 = 55 * Math.PI / 180;
+    } else {
+      base = { x: W * 0.68, y: H + 24 };
+      const dx0 = -0.30 * W, dy0 = -(0.76 * H + 24);
+      L = Math.hypot(dx0, dy0);
+      angle0 = Math.atan2(-dy0, dx0);
+    }
     const angleMin = angle0 - AIM_SPREAD, angleMax = angle0 + AIM_SPREAD;
     if (aimAngle === null) { aimAngle = angle0; aimAngleTarget = angle0; }
     const tip = {
@@ -1373,6 +1484,10 @@ html, body {
   }
 
   function updateControlsUI() {
+    const busy = state === 'bite' || state === 'reeling';
+    returnToShoreBtn.classList.toggle('disabled', busy);
+    boatBackBtnDrive.disabled = busy;
+    boatFwdBtnDrive.disabled = busy;
     shopTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     sellTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
     mapTile.classList.toggle('disabled', state === 'bite' || state === 'reeling');
@@ -1662,6 +1777,7 @@ html, body {
     stateT += dt;
     updateAim(dt);
     if (charging) updateCharge(dt);
+    if (viewMode === 'boat') updateBoatDrive(dt);
     updateAmbientFish(dt);
     if (state === 'casting') updateCasting(dt);
     else if (state === 'waiting') updateWaiting(dt);
@@ -1962,11 +2078,88 @@ html, body {
     ctx.closePath();
   }
 
+  function drawShoreline() {
+    const alpha = clamp(1 - boatPos * 1.5, 0, 1);
+    if (alpha <= 0) return;
+    const wy = waterLine();
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#0a2015';
+    ctx.beginPath();
+    ctx.moveTo(0, wy + 4);
+    ctx.quadraticCurveTo(W * 0.06, wy - 60, W * 0.14, wy + 4);
+    ctx.lineTo(0, wy + 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, wy);
+    ctx.lineTo(W * 0.16, wy);
+    ctx.lineTo(0, wy - 30);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const BOAT_HULL_COLORS = {
+    brzeg:     { hull:'#6b4a2a', trim:'#8a6438' },
+    wioslowka: { hull:'#7a5230', trim:'#9c7040' },
+    kajak:     { hull:'#c0472f', trim:'#8a2e1c' },
+    motorowka: { hull:'#e0a838', trim:'#a06e18' },
+    kuter:     { hull:'#4a6a7a', trim:'#2e4a58' },
+    jacht:     { hull:'#eef8f7', trim:'#bfd8d8' },
+  };
+
+  function drawBoatHull() {
+    const b = boatPosition();
+    const bob = Math.sin(bobberSwing * 1.6) * 3;
+    const colors = BOAT_HULL_COLORS[equippedBoat] || BOAT_HULL_COLORS.wioslowka;
+    ctx.save();
+    ctx.translate(b.x, b.y + bob);
+    ctx.fillStyle = colors.hull;
+    ctx.beginPath();
+    ctx.moveTo(-58, 0);
+    ctx.quadraticCurveTo(-62, 18, -34, 22);
+    ctx.lineTo(34, 22);
+    ctx.quadraticCurveTo(62, 18, 58, 0);
+    ctx.quadraticCurveTo(0, -10, -58, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = colors.trim;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-56, 1);
+    ctx.quadraticCurveTo(0, -8, 56, 1);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCharacter() {
+    const b = boatPosition();
+    const bob = Math.sin(bobberSwing * 1.6) * 3;
+    ctx.save();
+    ctx.translate(b.x - 18, b.y - 10 + bob);
+    ctx.fillStyle = '#2c4a5c';
+    ctx.beginPath();
+    ctx.moveTo(-11, 0); ctx.lineTo(11, 0); ctx.lineTo(8, -34); ctx.lineTo(-8, -34);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e8b98a';
+    ctx.beginPath(); ctx.arc(0, -44, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#c9922f';
+    ctx.beginPath();
+    ctx.arc(0, -48, 12, Math.PI, 0);
+    ctx.fill();
+    ctx.fillRect(-14, -48, 28, 3.5);
+    ctx.restore();
+  }
+
   function draw() {
     drawBackground();
+    if (viewMode === 'boat') drawShoreline();
     drawAmbientFish();
     drawRipples();
+    if (viewMode === 'boat') drawBoatHull();
     drawRod();
+    if (viewMode === 'boat') drawCharacter();
     drawLineAndBobber();
     if (state === 'reeling') drawReelPanel();
   }
