@@ -693,8 +693,8 @@ html, body {
   // Wklej tu URL i klucz anon/public swojego projektu Supabase
   // (Ustawienia -> API w panelu Supabase). Dopóki tu jest placeholder,
   // logowanie jest pominięte i gra startuje od razu jak wcześniej.
-  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL = 'https://hfjbqtuswdnbvhsscffv.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhmamJxdHVzd2RuYnZoc3NjZmZ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0Njk2OTcsImV4cCI6MjEwMjA0NTY5N30.wD71-vokgNA5H605E_cID_XghGNWbYBtnosGPnairOg';
   const supabaseConfigured = SUPABASE_URL.indexOf('YOUR_SUPABASE') !== 0 && SUPABASE_ANON_KEY.indexOf('YOUR_SUPABASE') !== 0;
   const sb = (supabaseConfigured && window.supabase)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
