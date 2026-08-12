@@ -2020,7 +2020,7 @@ html, body {
     ctx.stroke();
     ctx.restore();
 
-    if (state === 'idle' || state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
+    if (state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
 
     ctx.save();
     ctx.translate(bx, by);
