@@ -772,6 +772,9 @@ html, body {
     { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0' },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
+    { name:'Piorun Wędka', rodOuter:'#16162a', rodInner:'#eaf2ff', guide:'rgba(20,20,60,0.6)', reelBody:'#0d0d1c', reelFace:'#bfe0ff', reelArm:'#16162a', accent:'#8fd6ff', glow:true, flicker:true },
+    { name:'Ognista Wędka', rodOuter:'#3a1206', rodInner:'#ff7a2e', guide:'rgba(60,15,0,0.55)', reelBody:'#2a0d04', reelFace:'#ffcf6b', reelArm:'#3a1206', accent:'#ff4d1f', glow:true, pulse:true },
+    { name:'Lodowa Wędka', rodOuter:'#1c3a4a', rodInner:'#d8f6ff', guide:'rgba(0,40,55,0.5)', reelBody:'#123040', reelFace:'#eafeff', reelArm:'#1c3a4a', accent:'#9fe8ff', glow:true, sparkle:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
   function currentRodStyle() {
@@ -821,12 +824,13 @@ html, body {
     return pool[0];
   }
   function fishZone(fish) {
-    const effLvl = hasHiperRod ? 5 : (upgrades.rod || 0);
+    const maxRodLvl = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
+    const effLvl = hasHiperRod ? maxRodLvl : (upgrades.rod || 0);
     return fish.zone * (1 + 0.18 * effLvl);
   }
 
   const UPGRADE_DEFS = [
-    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350, 700] },
+    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350, 700, 1100, 1800, 2800] },
     { key:'reel', name:'Kołowrotek', descKey:'reelLevelDots', btnKey:'reelBuyBtn', costs:[45, 130, 300, 600] },
   ];
 
@@ -2125,6 +2129,22 @@ html, body {
       accentColor = '#f2c9ff';
       reelFaceColor = accentColor;
     }
+    let glowBoost = 1;
+    if (style.flicker) {
+      const bolt = Math.pow(Math.max(0, Math.sin(performance.now() * 0.021)), 8);
+      if (bolt > 0.4) {
+        innerColor = shadeHex(innerColor, 60 * bolt);
+        accentColor = '#ffffff';
+        reelFaceColor = accentColor;
+        glowBoost = 1 + bolt * 1.6;
+      }
+    }
+    if (style.pulse) {
+      const p = (Math.sin(performance.now() * 0.0045) + 1) / 2;
+      innerColor = shadeHex(innerColor, -10 + 30 * p);
+      accentColor = shadeHex(accentColor, -10 + 25 * p);
+      reelFaceColor = accentColor;
+    }
     ctx.save();
     ctx.lineCap = 'round';
 
@@ -2134,7 +2154,7 @@ html, body {
       ctx.lineWidth = 16;
       ctx.globalAlpha = 0.25;
       ctx.shadowColor = accentColor;
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 18 * glowBoost;
       ctx.beginPath(); ctx.moveTo(g.base.x, g.base.y); ctx.lineTo(g.tip.x, g.tip.y); ctx.stroke();
       ctx.restore();
     }
@@ -2183,6 +2203,31 @@ html, body {
       ctx.strokeStyle = style.guide;
       ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    if (style.sparkle) {
+      const now = performance.now();
+      for (let k = 0; k < 5; k++) {
+        const t = 0.12 + k * 0.19;
+        const twinkle = Math.pow(Math.max(0, Math.sin(now * 0.0032 + k * 2.1)), 6);
+        if (twinkle < 0.35) continue;
+        const sx = lerp(g.base.x, g.tip.x, t) + nx * (k % 2 === 0 ? 17 : -17);
+        const sy = lerp(g.base.y, g.tip.y, t) + ny * (k % 2 === 0 ? 17 : -17);
+        ctx.save();
+        ctx.globalAlpha = twinkle;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#bff6ff';
+        ctx.shadowBlur = 10;
+        const r = 4.2 * twinkle;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - r); ctx.lineTo(sx + r * 0.32, sy - r * 0.32);
+        ctx.lineTo(sx + r, sy); ctx.lineTo(sx + r * 0.32, sy + r * 0.32);
+        ctx.lineTo(sx, sy + r); ctx.lineTo(sx - r * 0.32, sy + r * 0.32);
+        ctx.lineTo(sx - r, sy); ctx.lineTo(sx - r * 0.32, sy - r * 0.32);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
     }
 
     ctx.save();
