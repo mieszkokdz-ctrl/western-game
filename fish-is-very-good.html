@@ -698,7 +698,7 @@ html, body {
     { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'], elongated:true },
     { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
     { name:'Lin',           color:'#6a8a4a', fin:'#3f5a2a', minKg:0.30, maxKg:1.20, weight:22,  erratic:0.22, zone:0.29, rare:false, value:6,  locations:['jezioro','rzeka'] },
-    { name:'Pirania',       color:'#5c6b6a', fin:'#2c3634', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'], bellyColor:'#e2472a', teeth:true },
+    { name:'Pirania',       color:'#5c6b6a', fin:'#2c3634', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'], bellyColor:'#e2472a', teeth:true, bodyDepth:1.35 },
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
@@ -1821,7 +1821,7 @@ html, body {
 
     const elong = fish.elongated ? 1.55 : 1.0;
     const bl = s * elong;
-    const bh = s * (fish.elongated ? 0.42 : 0.56);
+    const bh = s * (fish.elongated ? 0.42 : 0.56) * (fish.bodyDepth || 1);
 
     if (fish.glow) {
       targetCtx.shadowColor = fish.color;
