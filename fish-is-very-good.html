@@ -205,6 +205,12 @@ html, body {
   #shopTile .shop-icon, #sellTile .shop-icon, #mapTile .shop-icon, #gablotaTile .shop-icon, #dailyTile .shop-icon, #boatTile .shop-icon { font-size:22px; line-height:1; }
   #shopTile .shop-label, #sellTile .shop-label, #mapTile .shop-label, #gablotaTile .shop-label, #dailyTile .shop-label, #boatTile .shop-label { font-size:9.5px; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; color:var(--foam); }
   #shopTile.disabled, #sellTile.disabled, #mapTile.disabled, #gablotaTile.disabled, #dailyTile.disabled, #boatTile.disabled { opacity:0.35; pointer-events:none; }
+  .gablota-tile-canvas {
+    display:block; width:40px; height:30px; border-radius:4px;
+    background: linear-gradient(180deg, #9a6a3c 0%, #7a4e28 55%, #63401f 100%);
+    border:1px solid #4a2e16;
+    box-shadow: inset 0 0 0 1px rgba(255,220,180,0.12), inset 0 1px 3px rgba(0,0,0,0.35);
+  }
 
   #sellTile {
     position:fixed; right:16px; bottom:16px; z-index:12;
@@ -365,7 +371,7 @@ html, body {
 </div>
 
 <div id="gablotaTile" class="glass">
-  <div class="shop-icon">🏆</div>
+  <canvas id="gablotaTileCanvas" class="gablota-tile-canvas" width="40" height="30"></canvas>
   <div class="shop-label">Gablota</div>
   <div id="gablotaBadge" class="tile-badge" style="display:none;">0</div>
 </div>
@@ -612,6 +618,7 @@ html, body {
   const toastBasketBtn = document.getElementById('toastBasketBtn');
   const toastKeepBtn = document.getElementById('toastKeepBtn');
   const gablotaTile = document.getElementById('gablotaTile');
+  const gablotaTileCanvas = document.getElementById('gablotaTileCanvas');
   const gablotaBadge = document.getElementById('gablotaBadge');
   const gablotaScreen = document.getElementById('gablotaScreen');
   const gablotaList = document.getElementById('gablotaList');
@@ -784,6 +791,9 @@ html, body {
     { id:'egzotyka', name:'Egzotyczna Rzeka', icon:'🌴', price:600,
       desc:'Egzotyczne, południowoamerykańskie ryby z odległych stron świata — najlepsze miejsce na naprawdę rzadkie okazy.' },
   ];
+  function fishTypeByName(name) {
+    return FISH_TYPES.find(f => f.name === name);
+  }
   const LOCATION_PALETTES = {
     jezioro: { skyTop:'#12324a', skyBottom:'#1c5372', waterTop:'#0e3a55', waterMid:'#0a2c44', waterBottom:'#071b2b', rayTint:'191,232,255' },
     rzeka:   { skyTop:'#173d2c', skyBottom:'#2c6b46', waterTop:'#0f4a38', waterMid:'#0b382a', waterBottom:'#061f17', rayTint:'190,255,220' },
@@ -1042,6 +1052,17 @@ html, body {
     } else {
       gablotaBadge.style.display = 'none';
     }
+    renderGablotaTileIcon();
+  }
+
+  function renderGablotaTileIcon() {
+    if (!gablotaTileCanvas) return;
+    const gctx = gablotaTileCanvas.getContext('2d');
+    gctx.clearRect(0, 0, gablotaTileCanvas.width, gablotaTileCanvas.height);
+    if (!gablota.length) return;
+    const last = gablota[gablota.length - 1];
+    const fish = fishTypeByName(last.name) || last;
+    drawFishIcon(gctx, fish, gablotaTileCanvas.width / 2, gablotaTileCanvas.height / 2 + 2, 10);
   }
 
   function renderGablota() {
