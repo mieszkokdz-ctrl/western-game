@@ -1445,6 +1445,50 @@ html, body {
     ripples.push({ x, y, r: big ? 6 : 3, alpha: 0.55, grow: big ? 55 : 30 });
   }
 
+  let jumpFish = null;
+  const FISH_JUMP_INTERVAL = 5 * 60 * 1000;
+  let nextFishJumpAt = performance.now() + FISH_JUMP_INTERVAL;
+
+  function startFishJump() {
+    const wy = waterLine();
+    const x = rand(W * 0.15, W * 0.85);
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation) && !f.rare);
+    const look = pool.length ? pool[Math.floor(Math.random() * pool.length)] : AMBIENT_FISH_STUB;
+    jumpFish = { x, wy, dir, t: 0, duration: rand(1.0, 1.3), look };
+    addRipple(x, wy, true);
+  }
+
+  function updateFishJump(dt) {
+    const now = performance.now();
+    if (!jumpFish && now >= nextFishJumpAt) {
+      startFishJump();
+      nextFishJumpAt = now + FISH_JUMP_INTERVAL;
+    }
+    if (jumpFish) {
+      jumpFish.t += dt / jumpFish.duration;
+      if (jumpFish.t >= 1) {
+        addRipple(jumpFish.x + jumpFish.dir * W * 0.09, jumpFish.wy, true);
+        jumpFish = null;
+      }
+    }
+  }
+
+  function drawFishJump() {
+    if (!jumpFish) return;
+    const f = jumpFish;
+    const t = clamp(f.t, 0, 1);
+    const arcH = 90;
+    const x = f.x + f.dir * t * W * 0.09;
+    const y = f.wy - Math.sin(Math.PI * t) * arcH;
+    const angle = f.dir * (0.5 - t) * 1.0;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    drawFishIcon(ctx, f.look, 0, 0, 16, f.dir);
+    ctx.restore();
+  }
+
   let fireworkParticles = [];
   let fireworksActiveUntil = 0;
   let fireworksNextBurstAt = 0;
@@ -1813,6 +1857,7 @@ html, body {
     ripples = ripples.filter(r => r.alpha > 0);
 
     updateFireworks(dt);
+    updateFishJump(dt);
   }
 
   // ---------- drawing ----------
@@ -2300,6 +2345,7 @@ html, body {
   function draw() {
     drawBackground();
     drawAmbientFish();
+    drawFishJump();
     drawRipples();
     drawBoatPeek();
     drawRod();
