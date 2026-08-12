@@ -702,7 +702,7 @@ html, body {
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
-    { name:'Rekin Byczy',   color:'#6f7c82', fin:'#3d474c', minKg:40.0, maxKg:150.0, weight:0.35, erratic:0.72, zone:0.13, rare:true, value:380, locations:['egzotyka'], elongated:true, teeth:true, bellyColor:'#e8edf0', lengthMult:2.1, bodyDepth:2.1, tailScale:2.0 },
+    { name:'Rekin Byczy',   color:'#6f7c82', fin:'#3d474c', minKg:40.0, maxKg:150.0, weight:0.35, erratic:0.72, zone:0.13, rare:true, value:380, locations:['egzotyka'], elongated:true, teeth:true, bellyColor:'#e8edf0', lengthMult:2.1, bodyDepth:2.1, tailScale:2.0, bluntNose:true, secondDorsal:true, pectoralScale:1.6, eyeScale:0.6 },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -1864,13 +1864,15 @@ html, body {
       grad.addColorStop(0.5, fish.color);
       grad.addColorStop(1, shadeHex(fish.color, 24));
     }
+    const noseX = bl * (fish.bluntNose ? 0.76 : 0.92);
+    const noseNeckX = bl * (fish.bluntNose ? 0.62 : 0.7);
     targetCtx.fillStyle = grad;
     targetCtx.beginPath();
-    targetCtx.moveTo(bl * 0.92, 0);
-    targetCtx.quadraticCurveTo(bl * 0.7, -bh, -bl * 0.5, -bh * 0.8);
+    targetCtx.moveTo(noseX, 0);
+    targetCtx.quadraticCurveTo(noseNeckX, -bh, -bl * 0.5, -bh * 0.8);
     targetCtx.quadraticCurveTo(-bl * 0.86, -bh * 0.22, -bl * 0.82, 0);
     targetCtx.quadraticCurveTo(-bl * 0.86, bh * 0.22, -bl * 0.5, bh * 0.8);
-    targetCtx.quadraticCurveTo(bl * 0.7, bh, bl * 0.92, 0);
+    targetCtx.quadraticCurveTo(noseNeckX, bh, noseX, 0);
     targetCtx.closePath();
     targetCtx.fill();
     targetCtx.shadowBlur = 0;
@@ -1882,6 +1884,15 @@ html, body {
     targetCtx.quadraticCurveTo(bl * 0.14, -bh * 1.5, bl * 0.36, -bh * 0.68);
     targetCtx.closePath();
     targetCtx.fill();
+
+    // second (smaller) dorsal fin, set further back near the tail
+    if (fish.secondDorsal) {
+      targetCtx.beginPath();
+      targetCtx.moveTo(-bl * 0.42, -bh * 0.68);
+      targetCtx.quadraticCurveTo(-bl * 0.34, -bh * 1.02, -bl * 0.22, -bh * 0.62);
+      targetCtx.closePath();
+      targetCtx.fill();
+    }
 
     // bioluminescent lure (short line with a glowing lamp at the tip)
     if (fish.lure) {
@@ -1909,9 +1920,10 @@ html, body {
     }
 
     // pectoral fin
+    const pecScale = fish.pectoralScale || 1;
     targetCtx.beginPath();
     targetCtx.moveTo(bl * 0.3, bh * 0.08);
-    targetCtx.quadraticCurveTo(bl * 0.2, bh * 0.72, bl * 0.02, bh * 0.4);
+    targetCtx.quadraticCurveTo(bl * (0.2 - 0.06 * (pecScale - 1)), bh * (0.72 * pecScale), bl * 0.02, bh * 0.4);
     targetCtx.closePath();
     targetCtx.fill();
 
@@ -1938,10 +1950,11 @@ html, body {
     }
 
     // eye
+    const eyeScale = fish.eyeScale || 1;
     targetCtx.fillStyle = '#fff';
-    targetCtx.beginPath(); targetCtx.arc(bl * 0.6, -bh * 0.1, bh * 0.24, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.beginPath(); targetCtx.arc(bl * 0.6, -bh * 0.1, bh * 0.24 * eyeScale, 0, Math.PI * 2); targetCtx.fill();
     targetCtx.fillStyle = '#161616';
-    targetCtx.beginPath(); targetCtx.arc(bl * 0.66, -bh * 0.1, bh * 0.13, 0, Math.PI * 2); targetCtx.fill();
+    targetCtx.beginPath(); targetCtx.arc(bl * 0.66, -bh * 0.1, bh * 0.13 * eyeScale, 0, Math.PI * 2); targetCtx.fill();
 
     targetCtx.restore();
   }
