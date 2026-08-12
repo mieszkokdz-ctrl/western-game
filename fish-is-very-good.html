@@ -187,6 +187,44 @@ html, body {
 }
 .howto b { color:var(--foam); font-weight:600; }
 
+.auth-card {
+  width:min(360px, 92vw); margin-top:22px; padding:24px 22px; border-radius:24px; text-align:left;
+}
+.auth-tabs { display:flex; gap:8px; margin-bottom:18px; }
+.auth-tab {
+  flex:1; padding:10px 8px; border-radius:12px; border:none; cursor:pointer;
+  font-family:'Reef Sans', sans-serif; font-size:11.5px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+  background:rgba(255,255,255,0.06); color:var(--foam-dim); transition:background 0.15s ease, color 0.15s ease;
+}
+.auth-tab.active { background:linear-gradient(180deg, var(--sun), var(--sun-deep)); color:var(--ink); }
+.auth-input {
+  display:block; width:100%; box-sizing:border-box; margin-bottom:10px; padding:13px 14px;
+  border-radius:12px; border:1px solid rgba(255,255,255,0.14); background:rgba(4,16,25,0.4);
+  color:var(--foam); font-family:'Reef Sans', sans-serif; font-size:14px; outline:none;
+}
+.auth-input::placeholder { color:var(--foam-dim); opacity:0.7; }
+.auth-input:focus { border-color:var(--sun); }
+.auth-card .btn { width:100%; padding:14px; box-sizing:border-box; margin-top:4px; }
+.auth-link {
+  display:block; width:100%; margin-top:12px; background:none; border:none; cursor:pointer;
+  color:var(--foam-dim); font-family:'Reef Sans', sans-serif; font-size:12px; text-decoration:underline;
+  text-align:center; padding:4px;
+}
+.auth-link:hover { color:var(--foam); }
+.auth-desc { font-size:12.5px; color:var(--foam-dim); line-height:1.5; margin-bottom:14px; }
+.auth-error, .auth-success {
+  padding:10px 12px; border-radius:10px; font-size:12.5px; line-height:1.4; margin-bottom:14px;
+}
+.auth-error { background:rgba(225,75,58,0.16); border:1px solid rgba(225,75,58,0.4); color:#ff9a8a; }
+.auth-success { background:rgba(95,216,184,0.16); border:1px solid rgba(95,216,184,0.4); color:#8ff0d4; }
+#logoutBtn {
+  position:fixed; top:16px; right:16px; z-index:22; display:none;
+  padding:8px 14px; border-radius:999px; border:none; cursor:pointer;
+  font-family:'Reef Sans', sans-serif; font-size:10.5px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--foam-dim); background:rgba(4,16,25,0.5); border:1px solid rgba(255,255,255,0.12);
+}
+#logoutBtn:hover { color:var(--foam); }
+
   #hud .coins { font-size:13px; font-weight:700; color:var(--sun); margin-top:3px; }
 
   #shopTile, #mapTile, #gablotaTile, #dailyTile, #boatTile {
@@ -517,7 +555,50 @@ html, body {
   </div>
 </div>
 
-<div class="overlay" id="startScreen">
+<div class="overlay hidden" id="authScreen">
+  <div class="eyebrow-tag">gra przeglądarkowa &middot; wędkarstwo</div>
+  <div class="title"><span class="fish-emoji">🐟</span> POLISH FISHING</div>
+  <div class="auth-card glass">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="authTabLogin" type="button">Zaloguj się</button>
+      <button class="auth-tab" id="authTabRegister" type="button">Zarejestruj się</button>
+    </div>
+    <div class="auth-error" id="authError" style="display:none;"></div>
+    <div class="auth-success" id="authSuccess" style="display:none;"></div>
+
+    <div id="authFormLogin">
+      <input class="auth-input" type="email" id="loginEmail" placeholder="E-mail" autocomplete="email">
+      <input class="auth-input" type="password" id="loginPassword" placeholder="Hasło" autocomplete="current-password">
+      <button class="btn btn-gold" id="loginBtn" type="button">Zaloguj się</button>
+      <button class="auth-link" id="forgotPasswordBtn" type="button">Nie pamiętasz hasła?</button>
+    </div>
+
+    <div id="authFormRegister" style="display:none;">
+      <input class="auth-input" type="email" id="registerEmail" placeholder="E-mail" autocomplete="email">
+      <input class="auth-input" type="password" id="registerPassword" placeholder="Hasło (min. 6 znaków)" autocomplete="new-password">
+      <input class="auth-input" type="password" id="registerPasswordConfirm" placeholder="Powtórz hasło" autocomplete="new-password">
+      <button class="btn btn-gold" id="registerBtn" type="button">Zarejestruj się</button>
+    </div>
+
+    <div id="authFormForgot" style="display:none;">
+      <div class="auth-desc">Podaj e-mail, na który wyślemy link do zresetowania hasła.</div>
+      <input class="auth-input" type="email" id="forgotEmail" placeholder="E-mail" autocomplete="email">
+      <button class="btn btn-gold" id="forgotSendBtn" type="button">Wyślij link resetujący</button>
+      <button class="auth-link" id="backToLoginBtn" type="button">Wróć do logowania</button>
+    </div>
+
+    <div id="authFormNewPassword" style="display:none;">
+      <div class="auth-desc">Ustaw nowe hasło do swojego konta.</div>
+      <input class="auth-input" type="password" id="newPassword" placeholder="Nowe hasło" autocomplete="new-password">
+      <input class="auth-input" type="password" id="newPasswordConfirm" placeholder="Powtórz nowe hasło" autocomplete="new-password">
+      <button class="btn btn-gold" id="setNewPasswordBtn" type="button">Ustaw nowe hasło</button>
+    </div>
+  </div>
+</div>
+
+<button id="logoutBtn" type="button">Wyloguj</button>
+
+<div class="overlay hidden" id="startScreen">
   <div class="eyebrow-tag">gra przeglądarkowa &middot; wędkarstwo</div>
   <div class="title"><span class="fish-emoji">🐟</span> POLISH FISHING</div>
   <div class="subtitle">Zarzuć linkę, poczekaj na branie i zwiń żyłkę zanim ryba się urwie. Im rzadszy gatunek, tym trudniej go utrzymać.</div>
@@ -529,6 +610,7 @@ html, body {
   <button class="btn btn-gold" id="startBtn">Zacznij łowić</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (() => {
   'use strict';
@@ -582,6 +664,169 @@ html, body {
   const powerBarFill = document.getElementById('powerBarFill');
   const startScreen = document.getElementById('startScreen');
   const startBtn = document.getElementById('startBtn');
+  const authScreen = document.getElementById('authScreen');
+  const authTabLogin = document.getElementById('authTabLogin');
+  const authTabRegister = document.getElementById('authTabRegister');
+  const authFormLogin = document.getElementById('authFormLogin');
+  const authFormRegister = document.getElementById('authFormRegister');
+  const authFormForgot = document.getElementById('authFormForgot');
+  const authFormNewPassword = document.getElementById('authFormNewPassword');
+  const authError = document.getElementById('authError');
+  const authSuccess = document.getElementById('authSuccess');
+  const loginEmail = document.getElementById('loginEmail');
+  const loginPassword = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+  const registerEmail = document.getElementById('registerEmail');
+  const registerPassword = document.getElementById('registerPassword');
+  const registerPasswordConfirm = document.getElementById('registerPasswordConfirm');
+  const registerBtn = document.getElementById('registerBtn');
+  const forgotEmail = document.getElementById('forgotEmail');
+  const forgotSendBtn = document.getElementById('forgotSendBtn');
+  const backToLoginBtn = document.getElementById('backToLoginBtn');
+  const newPassword = document.getElementById('newPassword');
+  const newPasswordConfirm = document.getElementById('newPasswordConfirm');
+  const setNewPasswordBtn = document.getElementById('setNewPasswordBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  // ---------- Supabase auth ----------
+  // Wklej tu URL i klucz anon/public swojego projektu Supabase
+  // (Ustawienia -> API w panelu Supabase). Dopóki tu jest placeholder,
+  // logowanie jest pominięte i gra startuje od razu jak wcześniej.
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const supabaseConfigured = SUPABASE_URL.indexOf('YOUR_SUPABASE') !== 0 && SUPABASE_ANON_KEY.indexOf('YOUR_SUPABASE') !== 0;
+  const sb = (supabaseConfigured && window.supabase)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+  function clearAuthMessages() {
+    authError.style.display = 'none';
+    authSuccess.style.display = 'none';
+  }
+  function showAuthError(msg) {
+    authError.textContent = msg;
+    authError.style.display = 'block';
+    authSuccess.style.display = 'none';
+  }
+  function showAuthSuccess(msg) {
+    authSuccess.textContent = msg;
+    authSuccess.style.display = 'block';
+    authError.style.display = 'none';
+  }
+  function setAuthLoading(btn, loading, label) {
+    btn.disabled = loading;
+    if (loading) { btn.dataset.label = btn.textContent; btn.textContent = 'Chwileczkę…'; }
+    else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+  }
+  function translateAuthError(error) {
+    const msg = (error && error.message) || '';
+    if (/invalid login credentials/i.test(msg)) return 'Nieprawidłowy e-mail lub hasło.';
+    if (/already registered|user already exists/i.test(msg)) return 'Ten e-mail jest już zarejestrowany.';
+    if (/email not confirmed/i.test(msg)) return 'Potwierdź najpierw adres e-mail (sprawdź skrzynkę).';
+    if (/password should be at least|password.*short/i.test(msg)) return 'Hasło jest za krótkie (min. 6 znaków).';
+    if (/rate limit/i.test(msg)) return 'Zbyt wiele prób. Spróbuj ponownie za chwilę.';
+    return msg || 'Wystąpił błąd. Spróbuj ponownie.';
+  }
+
+  function switchAuthTab(tab) {
+    clearAuthMessages();
+    authTabLogin.classList.toggle('active', tab === 'login');
+    authTabRegister.classList.toggle('active', tab === 'register');
+    authFormLogin.style.display = tab === 'login' ? 'block' : 'none';
+    authFormRegister.style.display = tab === 'register' ? 'block' : 'none';
+    authFormForgot.style.display = tab === 'forgot' ? 'block' : 'none';
+    authFormNewPassword.style.display = tab === 'newpassword' ? 'block' : 'none';
+  }
+
+  authTabLogin.addEventListener('click', () => switchAuthTab('login'));
+  authTabRegister.addEventListener('click', () => switchAuthTab('register'));
+  forgotPasswordBtn.addEventListener('click', () => switchAuthTab('forgot'));
+  backToLoginBtn.addEventListener('click', () => switchAuthTab('login'));
+
+  async function handleLogin() {
+    clearAuthMessages();
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+    if (!email || !password) return showAuthError('Podaj e-mail i hasło.');
+    setAuthLoading(loginBtn, true);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    setAuthLoading(loginBtn, false);
+    if (error) showAuthError(translateAuthError(error));
+  }
+  async function handleRegister() {
+    clearAuthMessages();
+    const email = registerEmail.value.trim();
+    const password = registerPassword.value;
+    const confirm = registerPasswordConfirm.value;
+    if (!email || !password) return showAuthError('Podaj e-mail i hasło.');
+    if (password.length < 6) return showAuthError('Hasło musi mieć min. 6 znaków.');
+    if (password !== confirm) return showAuthError('Hasła się nie zgadzają.');
+    setAuthLoading(registerBtn, true);
+    const { error } = await sb.auth.signUp({ email, password });
+    setAuthLoading(registerBtn, false);
+    if (error) return showAuthError(translateAuthError(error));
+    showAuthSuccess('Konto utworzone! Jeśli e-mail wymaga potwierdzenia, sprawdź skrzynkę, a potem się zaloguj.');
+  }
+  async function handleForgotPassword() {
+    clearAuthMessages();
+    const email = forgotEmail.value.trim();
+    if (!email) return showAuthError('Podaj e-mail.');
+    setAuthLoading(forgotSendBtn, true);
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+    setAuthLoading(forgotSendBtn, false);
+    if (error) return showAuthError(translateAuthError(error));
+    showAuthSuccess('Wysłaliśmy link do resetu hasła na podany adres e-mail.');
+  }
+  async function handleSetNewPassword() {
+    clearAuthMessages();
+    const p1 = newPassword.value, p2 = newPasswordConfirm.value;
+    if (!p1 || p1.length < 6) return showAuthError('Hasło musi mieć min. 6 znaków.');
+    if (p1 !== p2) return showAuthError('Hasła się nie zgadzają.');
+    setAuthLoading(setNewPasswordBtn, true);
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    setAuthLoading(setNewPasswordBtn, false);
+    if (error) return showAuthError(translateAuthError(error));
+    showAuthSuccess('Hasło zostało zmienione!');
+    setTimeout(() => switchAuthTab('login'), 1200);
+  }
+
+  loginBtn.addEventListener('click', handleLogin);
+  registerBtn.addEventListener('click', handleRegister);
+  forgotSendBtn.addEventListener('click', handleForgotPassword);
+  setNewPasswordBtn.addEventListener('click', handleSetNewPassword);
+  [loginPassword, loginEmail].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); }));
+  [registerPassword, registerPasswordConfirm, registerEmail].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); }));
+
+  logoutBtn.addEventListener('click', async () => {
+    if (sb) await sb.auth.signOut();
+  });
+
+  function showAuthGate() {
+    startScreen.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+    logoutBtn.style.display = 'none';
+  }
+  function showStartGate() {
+    authScreen.classList.add('hidden');
+    if (!started) startScreen.classList.remove('hidden');
+    logoutBtn.style.display = 'block';
+  }
+
+  if (sb) {
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        authScreen.classList.remove('hidden');
+        startScreen.classList.add('hidden');
+        switchAuthTab('newpassword');
+        return;
+      }
+      if (session) showStartGate();
+      else showAuthGate();
+    });
+  } else {
+    startScreen.classList.remove('hidden');
+  }
   const toast = document.getElementById('catchToast');
   const toastEyebrow = document.getElementById('toastEyebrow');
   const toastName = document.getElementById('toastName');
