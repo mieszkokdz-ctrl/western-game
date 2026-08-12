@@ -702,6 +702,7 @@ html, body {
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
+    { name:'Rekin Byczy',   color:'#6f7c82', fin:'#3d474c', minKg:40.0, maxKg:150.0, weight:0.35, erratic:0.72, zone:0.13, rare:true, value:380, locations:['egzotyka'], elongated:true, teeth:true, bellyColor:'#e8edf0' },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -730,7 +731,7 @@ html, body {
     id:'hiper', name:'Hiper Przynęta', icon:'🌟', price:0,
     desc:'Legendarna przynęta ze specjalnej nagrody — kusi każdą rzadką rybę na świecie.',
     favors:{ 'Karp':2.5, 'Szczupak':2.5, 'Sum':2.5, 'Złota Rybka':2.5, 'Dorsz':2.5, 'Jesiotr':2.5,
-      'Głowacica':2.5, 'Łosoś Bałtycki':2.5, 'Tucunaré':2.5, 'Arapaima':2.5 },
+      'Głowacica':2.5, 'Łosoś Bałtycki':2.5, 'Tucunaré':2.5, 'Arapaima':2.5, 'Rekin Byczy':2.5 },
     biteMult:0.75,
   };
   function availableBaits() {
@@ -781,7 +782,7 @@ html, body {
     { id:'morze', name:'Morze Bałtyckie', icon:'🌊', price:400,
       desc:'Dorsze, makrele i śledzie — a czasem bierze wędrowny łosoś bałtycki.' },
     { id:'egzotyka', name:'Egzotyczna Rzeka', icon:'🌴', price:600,
-      desc:'Piranie, bassy i kolorowe tucunare z innych stron świata — a w toni czyha gigantyczna arapaima.' },
+      desc:'Piranie, bassy i kolorowe tucunare z innych stron świata — a w toni czyha gigantyczna arapaima i rekin byczy.' },
   ];
   const LOCATION_PALETTES = {
     jezioro: { skyTop:'#12324a', skyBottom:'#1c5372', waterTop:'#0e3a55', waterMid:'#0a2c44', waterBottom:'#071b2b', rayTint:'191,232,255' },
