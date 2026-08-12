@@ -702,7 +702,7 @@ html, body {
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
-    { name:'Rekin Byczy',   color:'#6f7c82', fin:'#3d474c', minKg:40.0, maxKg:150.0, weight:0.35, erratic:0.72, zone:0.13, rare:true, value:380, locations:['egzotyka'], elongated:true, teeth:true, bellyColor:'#e8edf0', lengthMult:1.4, bodyDepth:1.3 },
+    { name:'Rekin Byczy',   color:'#6f7c82', fin:'#3d474c', minKg:40.0, maxKg:150.0, weight:0.35, erratic:0.72, zone:0.13, rare:true, value:380, locations:['egzotyka'], elongated:true, teeth:true, bellyColor:'#e8edf0', lengthMult:1.7, bodyDepth:1.3, tailScale:1.6 },
   ];
   const BAITS = [
     { id:'robak',    name:'Robak',        icon:'🪱', price:0,
@@ -1830,11 +1830,16 @@ html, body {
     }
 
     // caudal (tail) fin
+    const tailScale = fish.tailScale || 1;
+    const tailBaseX = -bl * 0.76;
+    const tailTipX = tailBaseX - bl * 0.52 * tailScale;
+    const tailNotchX = tailBaseX - bl * 0.29 * tailScale;
+    const tailTipY = bh * 0.9 * tailScale;
     targetCtx.fillStyle = fish.fin;
     targetCtx.beginPath();
-    targetCtx.moveTo(-bl * 0.76, 0);
-    targetCtx.lineTo(-bl * 1.28, -bh * 0.9);
-    targetCtx.quadraticCurveTo(-bl * 1.05, 0, -bl * 1.28, bh * 0.9);
+    targetCtx.moveTo(tailBaseX, 0);
+    targetCtx.lineTo(tailTipX, -tailTipY);
+    targetCtx.quadraticCurveTo(tailNotchX, 0, tailTipX, tailTipY);
     targetCtx.closePath();
     targetCtx.fill();
 
@@ -1944,7 +1949,13 @@ html, body {
   function renderToastFishCanvas(fish) {
     const tctx = toastFishCanvas.getContext('2d');
     tctx.clearRect(0, 0, toastFishCanvas.width, toastFishCanvas.height);
-    drawFishIcon(tctx, fish, toastFishCanvas.width / 2, toastFishCanvas.height / 2 + 6, 30);
+    const lenFactor = (fish.elongated ? 1.55 : 1.0) * (fish.lengthMult || 1);
+    const halfWidthFactor = Math.max(0.92, 0.76 + 0.52 * (fish.tailScale || 1)) * lenFactor;
+    const halfHeightFactor = (fish.elongated ? 0.42 : 0.56) * (fish.bodyDepth || 1) * 1.5;
+    const maxHalfW = toastFishCanvas.width / 2 - 6;
+    const maxHalfH = toastFishCanvas.height / 2 - 6;
+    const s = Math.min(30, maxHalfW / halfWidthFactor, maxHalfH / halfHeightFactor);
+    drawFishIcon(tctx, fish, toastFishCanvas.width / 2, toastFishCanvas.height / 2 + 6, s);
   }
 
   function drawRod() {
