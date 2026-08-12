@@ -2023,6 +2023,17 @@ html, body {
     targetCtx.restore();
   }
 
+  function drawMysteryFish(targetCtx, cx, cy, s) {
+    drawFishIcon(targetCtx, { color: '#12161a', fin: '#0a0d10' }, cx, cy, s);
+    targetCtx.save();
+    targetCtx.fillStyle = '#eef8f7';
+    targetCtx.font = '800 ' + Math.round(s * 1.1) + 'px "Baloo Deep","Reef Sans",sans-serif';
+    targetCtx.textAlign = 'center';
+    targetCtx.textBaseline = 'middle';
+    targetCtx.fillText('?', cx, cy - s * 0.02);
+    targetCtx.restore();
+  }
+
   function renderToastFishCanvas(fish) {
     const tctx = toastFishCanvas.getContext('2d');
     tctx.clearRect(0, 0, toastFishCanvas.width, toastFishCanvas.height);
@@ -2204,7 +2215,7 @@ html, body {
     ctx.stroke();
 
     const fishCy = trackY + fishY * trackH;
-    drawFishIcon(ctx, fish, trackX + trackW / 2, fishCy, 15);
+    drawMysteryFish(ctx, trackX + trackW / 2, fishCy, 15);
 
     const barX = trackX + trackW + 14, barW = pw * 0.14;
     ctx.fillStyle = 'rgba(255,255,255,0.12)';
