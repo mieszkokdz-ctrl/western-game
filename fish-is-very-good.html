@@ -698,7 +698,7 @@ html, body {
     { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'], elongated:true },
     { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
     { name:'Lin',           color:'#6a8a4a', fin:'#3f5a2a', minKg:0.30, maxKg:1.20, weight:22,  erratic:0.22, zone:0.29, rare:false, value:6,  locations:['jezioro','rzeka'] },
-    { name:'Pirania',       color:'#c9524a', fin:'#7a2a24', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'] },
+    { name:'Pirania',       color:'#5c6b6a', fin:'#2c3634', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'], bellyColor:'#e2472a', teeth:true },
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
@@ -1846,11 +1846,18 @@ html, body {
       targetCtx.beginPath(); targetCtx.moveTo(bl * 0.86, -bh * 0.18); targetCtx.quadraticCurveTo(bl * 1.05, -bh * 0.55, bl * 1.22, -bh * 0.8); targetCtx.stroke();
     }
 
-    // body - tapered torpedo shape with light-to-dark shading
+    // body - tapered torpedo shape with light-to-dark shading (or two-tone belly)
     const grad = targetCtx.createLinearGradient(0, -bh, 0, bh);
-    grad.addColorStop(0, shadeHex(fish.color, -20));
-    grad.addColorStop(0.5, fish.color);
-    grad.addColorStop(1, shadeHex(fish.color, 24));
+    if (fish.bellyColor) {
+      grad.addColorStop(0, shadeHex(fish.color, -18));
+      grad.addColorStop(0.42, fish.color);
+      grad.addColorStop(0.6, fish.bellyColor);
+      grad.addColorStop(1, shadeHex(fish.bellyColor, -16));
+    } else {
+      grad.addColorStop(0, shadeHex(fish.color, -20));
+      grad.addColorStop(0.5, fish.color);
+      grad.addColorStop(1, shadeHex(fish.color, 24));
+    }
     targetCtx.fillStyle = grad;
     targetCtx.beginPath();
     targetCtx.moveTo(bl * 0.92, 0);
@@ -1883,6 +1890,21 @@ html, body {
     targetCtx.beginPath();
     targetCtx.arc(bl * 0.52, 0, bh * 0.5, -Math.PI * 0.38, Math.PI * 0.38);
     targetCtx.stroke();
+
+    // sharp jaw teeth (piranha-style underbite)
+    if (fish.teeth) {
+      targetCtx.fillStyle = '#f5f0e6';
+      const jx = bl * 0.88, jy = bh * 0.1;
+      for (let k = -1; k <= 1; k++) {
+        const ox = jx - Math.abs(k) * bl * 0.06, oy = jy + k * bh * 0.16;
+        targetCtx.beginPath();
+        targetCtx.moveTo(ox - bl * 0.05, oy - bh * 0.05);
+        targetCtx.lineTo(ox + bl * 0.03, oy);
+        targetCtx.lineTo(ox - bl * 0.05, oy + bh * 0.05);
+        targetCtx.closePath();
+        targetCtx.fill();
+      }
+    }
 
     // eye
     targetCtx.fillStyle = '#fff';
