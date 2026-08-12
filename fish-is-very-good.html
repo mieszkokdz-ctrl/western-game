@@ -776,13 +776,13 @@ html, body {
 
   const LOCATIONS = [
     { id:'jezioro', name:'Jezioro Leśne', icon:'🌲', price:0,
-      desc:'Karpie, szczupaki, liny i złota rybka — a w głębinach podobno czai się legendarny jesiotr.' },
+      desc:'Spokojne, leśne łowisko pełne pospolitych ryb słodkowodnych — ale podobno kryje też swoje rzadkości.' },
     { id:'rzeka', name:'Rzeka Górska', icon:'⛰️', price:150,
-      desc:'Płotki, okonie, szczupaki i sumy w prądzie — trofeum to rzadka głowacica.' },
+      desc:'Rwący, chłodny nurt górskiej rzeki — miejscowe ryby są zwinne, a legendy mówią o czymś więcej.' },
     { id:'morze', name:'Morze Bałtyckie', icon:'🌊', price:400,
-      desc:'Dorsze, makrele i śledzie — a czasem bierze wędrowny łosoś bałtycki.' },
+      desc:'Słona woda i morskie ryby pełnego morza — rybacy szepczą, że w głębinach czai się coś rzadkiego.' },
     { id:'egzotyka', name:'Egzotyczna Rzeka', icon:'🌴', price:600,
-      desc:'Piranie, bassy i kolorowe tucunare z innych stron świata — a w toni czyha gigantyczna arapaima i rekin byczy.' },
+      desc:'Egzotyczne, południowoamerykańskie ryby z odległych stron świata — najlepsze miejsce na naprawdę rzadkie okazy.' },
   ];
   const LOCATION_PALETTES = {
     jezioro: { skyTop:'#12324a', skyBottom:'#1c5372', waterTop:'#0e3a55', waterMid:'#0a2c44', waterBottom:'#071b2b', rayTint:'191,232,255' },
@@ -1238,6 +1238,9 @@ html, body {
       const name = document.createElement('div');
       name.className = 'bait-name';
       name.textContent = loc.name;
+      const desc = document.createElement('div');
+      desc.className = 'bait-desc';
+      desc.textContent = loc.desc;
       const btn = document.createElement('button');
       btn.className = 'bait-action-btn';
       if (equipped) {
@@ -1252,7 +1255,7 @@ html, body {
       }
       btn.addEventListener('click', () => selectOrBuyLocation(loc.id));
 
-      card.appendChild(icon); card.appendChild(name); card.appendChild(btn);
+      card.appendChild(icon); card.appendChild(name); card.appendChild(desc); card.appendChild(btn);
       mapGrid.appendChild(card);
     }
   }
