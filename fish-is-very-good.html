@@ -698,7 +698,7 @@ html, body {
     { name:'Głowacica',    color:'#b07a3a', fin:'#6b4620', minKg:5.00, maxKg:20.0, weight:0.9, erratic:0.75, zone:0.16, rare:true,  value:130, locations:['rzeka'], elongated:true },
     { name:'Łosoś Bałtycki', color:'#e2a0a0', fin:'#b06868', minKg:3.00, maxKg:14.0, weight:1.0, erratic:0.68, zone:0.17, rare:true,  value:100, locations:['morze'] },
     { name:'Lin',           color:'#6a8a4a', fin:'#3f5a2a', minKg:0.30, maxKg:1.20, weight:22,  erratic:0.22, zone:0.29, rare:false, value:6,  locations:['jezioro','rzeka'] },
-    { name:'Pirania',       color:'#5c6b6a', fin:'#2c3634', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'], bellyColor:'#e2472a', teeth:true, bodyDepth:1.35 },
+    { name:'Pirania',       color:'#5c6b6a', fin:'#2c3634', minKg:0.60, maxKg:1.80, weight:26,  erratic:0.58, zone:0.23, rare:false, value:22, locations:['egzotyka'], bellyColor:'#e2472a', teeth:true, bodyDepth:1.35, lure:true },
     { name:'Bass Amerykański', color:'#5a7a4a', fin:'#33461f', minKg:0.80, maxKg:3.50, weight:20, erratic:0.36, zone:0.27, rare:false, value:18, locations:['egzotyka'] },
     { name:'Tucunaré',      color:'#e0a838', fin:'#7a4a10', minKg:1.00, maxKg:5.00, weight:12,  erratic:0.50, zone:0.22, rare:true,  value:34, locations:['egzotyka'] },
     { name:'Arapaima',      color:'#c13fef', fin:'#6a1a9a', minKg:20.0, maxKg:90.0, weight:0.5, erratic:0.64, zone:0.15, glow:true, rare:true, value:400, locations:['egzotyka'], elongated:true },
@@ -1877,6 +1877,31 @@ html, body {
     targetCtx.closePath();
     targetCtx.fill();
 
+    // bioluminescent lure (short line with a glowing lamp at the tip)
+    if (fish.lure) {
+      const lx0 = bl * 0.5, ly0 = -bh * 0.58;
+      const lx1 = bl * 0.82, ly1 = -bh * 1.35;
+      targetCtx.strokeStyle = fish.fin;
+      targetCtx.lineWidth = Math.max(1, s * 0.045);
+      targetCtx.lineCap = 'round';
+      targetCtx.beginPath();
+      targetCtx.moveTo(lx0, ly0);
+      targetCtx.quadraticCurveTo(bl * 0.58, -bh * 1.05, lx1, ly1);
+      targetCtx.stroke();
+      targetCtx.save();
+      targetCtx.shadowColor = 'rgba(255,205,120,0.95)';
+      targetCtx.shadowBlur = s * 0.5;
+      const lampR = bh * 0.22;
+      const lampGrad = targetCtx.createRadialGradient(lx1, ly1, 0, lx1, ly1, lampR);
+      lampGrad.addColorStop(0, '#fff6d9');
+      lampGrad.addColorStop(0.55, '#ffcf6b');
+      lampGrad.addColorStop(1, '#e8952e');
+      targetCtx.fillStyle = lampGrad;
+      targetCtx.beginPath(); targetCtx.arc(lx1, ly1, lampR, 0, Math.PI * 2); targetCtx.fill();
+      targetCtx.shadowBlur = 0;
+      targetCtx.restore();
+    }
+
     // pectoral fin
     targetCtx.beginPath();
     targetCtx.moveTo(bl * 0.3, bh * 0.08);
@@ -2042,7 +2067,7 @@ html, body {
     ctx.stroke();
     ctx.restore();
 
-    if (state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
+    if (state === 'idle' || state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
 
     ctx.save();
     ctx.translate(bx, by);
