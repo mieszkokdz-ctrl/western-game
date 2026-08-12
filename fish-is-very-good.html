@@ -772,7 +772,7 @@ html, body {
     { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0' },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
-    { name:'Hiper Wędka', rodOuter:'#1a1a22', rodInner:'#ffffff', guide:'rgba(0,0,0,0.6)', reelBody:'#15151c', reelFace:'#ffffff', reelArm:'#1a1a22', accent:'#ffffff', glow:true, rainbow:true },
+    { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
   function currentRodStyle() {
     if (hasHiperRod) return ROD_STYLES[ROD_STYLES.length - 1];
@@ -2075,10 +2075,9 @@ html, body {
     const style = currentRodStyle();
     let outerColor = style.rodOuter, innerColor = style.rodInner, accentColor = style.accent, reelFaceColor = style.reelFace;
     if (style.rainbow) {
-      const hue = (performance.now() * 0.06) % 360;
-      outerColor = 'hsl(' + hue.toFixed(0) + ',65%,32%)';
-      innerColor = 'hsl(' + ((hue + 40) % 360).toFixed(0) + ',85%,68%)';
-      accentColor = 'hsl(' + ((hue + 180) % 360).toFixed(0) + ',90%,72%)';
+      outerColor = '#6a1a9a';
+      innerColor = '#c13fef';
+      accentColor = '#f2c9ff';
       reelFaceColor = accentColor;
     }
     ctx.save();
@@ -2145,7 +2144,7 @@ html, body {
     ctx.translate(g.reel.x, g.reel.y);
     const reelLvl = clamp(upgrades.reel || 0, 0, REEL_RING_COLORS.length - 1);
     const ringColor = hasHiperReel
-      ? 'hsl(' + ((performance.now() * 0.08) % 360).toFixed(0) + ',85%,65%)'
+      ? '#c13fef'
       : REEL_RING_COLORS[reelLvl];
     if (ringColor) {
       ctx.save();
