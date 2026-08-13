@@ -1014,7 +1014,7 @@ html, body {
   const ROD_STYLES = [
     { name:'Bambusowa', rodOuter:'#5a3a22', rodInner:'#8a5a34', guide:'rgba(20,10,4,0.55)', reelBody:'#2b2118', reelFace:'#c99a53', reelArm:'#5a3a22', accent:null },
     { name:'Grafitowa', rodOuter:'#2c2c34', rodInner:'#565662', guide:'rgba(0,0,0,0.5)',    reelBody:'#1b1b20', reelFace:'#9aa4b0', reelArm:'#2c2c34', accent:'#6fd7ff' },
-    { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0' },
+    { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0', blackRing:true },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
     { name:'Piorun Wędka', rodOuter:'#16162a', rodInner:'#eaf2ff', guide:'rgba(20,20,60,0.6)', reelBody:'#0d0d1c', reelFace:'#bfe0ff', reelArm:'#16162a', accent:'#8fd6ff', glow:true, flicker:true, boltShape:true, hueCycle:true },
@@ -2583,9 +2583,11 @@ html, body {
     ctx.save();
     ctx.translate(g.reel.x, g.reel.y);
     const reelLvl = clamp(upgrades.reel || 0, 0, REEL_RING_COLORS.length - 1);
-    const ringColor = hasHiperReel
-      ? '#c13fef'
-      : REEL_RING_COLORS[reelLvl];
+    const ringColor = style.blackRing
+      ? '#000000'
+      : hasHiperReel
+        ? '#c13fef'
+        : REEL_RING_COLORS[reelLvl];
     if (ringColor) {
       ctx.save();
       ctx.strokeStyle = ringColor;
