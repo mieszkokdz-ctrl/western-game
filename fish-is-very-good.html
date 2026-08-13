@@ -249,6 +249,22 @@ html, body {
     border:1px solid #4a2e16;
     box-shadow: inset 0 0 0 1px rgba(255,220,180,0.12), inset 0 1px 3px rgba(0,0,0,0.35);
   }
+  .sell-item.trophy-row { cursor:pointer; }
+  .sell-item.trophy-row:active { transform:translateY(2px); }
+  .gablota-detail-card {
+    width:min(320px, 90vw); padding:26px 24px; border-radius:24px; text-align:center;
+  }
+  .gablota-detail-canvas {
+    display:block; margin:0 auto 18px; width:240px; height:150px; max-width:100%; border-radius:14px;
+    background: linear-gradient(180deg, #9a6a3c 0%, #7a4e28 55%, #63401f 100%);
+    border:2px solid #4a2e16;
+    box-shadow: inset 0 0 0 2px rgba(255,220,180,0.14), inset 0 2px 8px rgba(0,0,0,0.4), 0 10px 24px rgba(0,0,0,0.35);
+  }
+  .gablota-detail-name {
+    font-family:'Baloo Deep','Reef Sans',sans-serif; font-weight:800; font-size:24px; color:var(--foam); margin-bottom:6px;
+  }
+  .gablota-detail-sub { font-size:13px; color:var(--sun); font-weight:600; margin-bottom:18px; }
+  .gablota-detail-card .btn { width:100%; padding:14px; box-sizing:border-box; }
 
   #sellTile {
     position:fixed; right:16px; bottom:16px; z-index:12;
@@ -552,6 +568,15 @@ html, body {
     </div>
     <div class="sell-list" id="gablotaList"></div>
     <button class="shop-buy-btn" id="gablotaCloseBtn" style="width:100%; padding:12px;">Zamknij</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="gablotaDetailScreen">
+  <div class="gablota-detail-card glass">
+    <canvas id="gablotaDetailCanvas" class="gablota-detail-canvas" width="240" height="150"></canvas>
+    <div class="gablota-detail-name" id="gablotaDetailName">Karp</div>
+    <div class="gablota-detail-sub" id="gablotaDetailSub">Rekord: 0.00 kg &middot; ×0 w gablocie</div>
+    <button class="btn btn-gold" id="gablotaDetailCloseBtn">Zamknij</button>
   </div>
 </div>
 
@@ -884,6 +909,11 @@ html, body {
   const gablotaList = document.getElementById('gablotaList');
   const gablotaCountLabel = document.getElementById('gablotaCountLabel');
   const gablotaCloseBtn = document.getElementById('gablotaCloseBtn');
+  const gablotaDetailScreen = document.getElementById('gablotaDetailScreen');
+  const gablotaDetailCanvas = document.getElementById('gablotaDetailCanvas');
+  const gablotaDetailName = document.getElementById('gablotaDetailName');
+  const gablotaDetailSub = document.getElementById('gablotaDetailSub');
+  const gablotaDetailCloseBtn = document.getElementById('gablotaDetailCloseBtn');
   const dailyTile = document.getElementById('dailyTile');
   const dailyBadge = document.getElementById('dailyBadge');
   const dailyScreen = document.getElementById('dailyScreen');
@@ -1380,13 +1410,14 @@ html, body {
     for (const name of Object.keys(groups)) {
       const g = groups[name];
       const row = document.createElement('div');
-      row.className = 'sell-item';
+      row.className = 'sell-item trophy-row';
       const cvs = document.createElement('canvas');
       cvs.width = 64; cvs.height = 44; cvs.className = 'trophy-thumb';
-      drawFishIcon(cvs.getContext('2d'), g, 32, 24, 17);
+      renderFishOntoCanvas(cvs, fishTypeByName(name) || g, 17, 4);
       const info = document.createElement('div');
       info.className = 'trophy-info';
       info.innerHTML = '<span class="sell-item-name">' + name + '</span><span class="sell-item-count">×' + g.count + '</span>';
+      row.addEventListener('click', () => showGablotaDetail(name, g));
       const best = document.createElement('div');
       best.className = 'sell-item-value';
       best.textContent = g.best.toFixed(2) + ' kg';
@@ -1407,6 +1438,18 @@ html, body {
   }
   gablotaTile.addEventListener('click', openGablota);
   gablotaCloseBtn.addEventListener('click', closeGablota);
+
+  function showGablotaDetail(name, g) {
+    const fish = fishTypeByName(name) || g;
+    renderGablotaDetailCanvas(fish);
+    gablotaDetailName.textContent = name;
+    gablotaDetailSub.textContent = 'Rekord: ' + g.best.toFixed(2) + ' kg · ×' + g.count + ' w gablocie';
+    gablotaDetailScreen.classList.remove('hidden');
+  }
+  function closeGablotaDetail() {
+    gablotaDetailScreen.classList.add('hidden');
+  }
+  gablotaDetailCloseBtn.addEventListener('click', closeGablotaDetail);
 
   const CYCLE_LEN = 20;
   const DAILY_REWARDS = [
@@ -2399,16 +2442,22 @@ html, body {
     targetCtx.restore();
   }
 
-  function renderToastFishCanvas(fish) {
-    const tctx = toastFishCanvas.getContext('2d');
-    tctx.clearRect(0, 0, toastFishCanvas.width, toastFishCanvas.height);
+  function renderFishOntoCanvas(canvas, fish, maxS, yOffset) {
+    const cctx = canvas.getContext('2d');
+    cctx.clearRect(0, 0, canvas.width, canvas.height);
     const lenFactor = (fish.elongated ? 1.55 : 1.0) * (fish.lengthMult || 1);
     const halfWidthFactor = Math.max(0.92, 0.76 + 0.52 * (fish.tailScale || 1)) * lenFactor;
     const halfHeightFactor = (fish.elongated ? 0.42 : 0.56) * (fish.bodyDepth || 1) * 1.5;
-    const maxHalfW = toastFishCanvas.width / 2 - 6;
-    const maxHalfH = toastFishCanvas.height / 2 - 6;
-    const s = Math.min(30, maxHalfW / halfWidthFactor, maxHalfH / halfHeightFactor);
-    drawFishIcon(tctx, fish, toastFishCanvas.width / 2, toastFishCanvas.height / 2 + 6, s);
+    const maxHalfW = canvas.width / 2 - 6;
+    const maxHalfH = canvas.height / 2 - 6;
+    const s = Math.min(maxS, maxHalfW / halfWidthFactor, maxHalfH / halfHeightFactor);
+    drawFishIcon(cctx, fish, canvas.width / 2, canvas.height / 2 + (yOffset || 0), s);
+  }
+  function renderToastFishCanvas(fish) {
+    renderFishOntoCanvas(toastFishCanvas, fish, 30, 6);
+  }
+  function renderGablotaDetailCanvas(fish) {
+    renderFishOntoCanvas(gablotaDetailCanvas, fish, 40, 0);
   }
 
   const BOLT_T = [0, 0.18, 0.4, 0.62, 0.82, 1];
