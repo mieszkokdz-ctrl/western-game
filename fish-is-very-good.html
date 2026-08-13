@@ -300,6 +300,15 @@ html, body {
   }
   .shop-item-name { font-weight:800; font-size:15px; color:var(--foam); margin-bottom:2px; }
   .shop-item-desc { font-size:12px; font-weight:400; color:var(--foam-dim); line-height:1.4; margin-bottom:7px; max-width:250px; }
+  .rod-picker-row { display:flex; align-items:center; gap:6px; }
+  .rod-picker-row .shop-item-desc { margin-bottom:0; flex:1; }
+  .rod-arrow {
+    flex-shrink:0; width:22px; height:22px; border-radius:50%; border:1px solid rgba(255,255,255,0.16);
+    background:rgba(255,255,255,0.06); color:var(--foam); font-size:13px; font-weight:800; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .rod-arrow:disabled { opacity:0.25; cursor:default; }
+  .rod-arrow:not(:disabled):active { transform:translateY(1px); }
   .shop-item-level { display:flex; gap:4px; }
   .level-dot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,0.18); }
   .level-dot.filled { background:var(--sun); }
@@ -467,7 +476,11 @@ html, body {
       <div class="shop-item">
         <div class="shop-item-info">
           <div class="shop-item-name">Wędka</div>
-          <div class="shop-item-desc" id="rodEquippedDesc">Bambusowa — większa strefa chwytu przy zwijaniu żyłki.</div>
+          <div class="rod-picker-row">
+            <button class="rod-arrow" id="rodPrevBtn" type="button" aria-label="Poprzednia wędka">‹</button>
+            <div class="shop-item-desc" id="rodEquippedDesc">Bambusowa — większa strefa chwytu przy zwijaniu żyłki.</div>
+            <button class="rod-arrow" id="rodNextBtn" type="button" aria-label="Następna wędka">›</button>
+          </div>
           <div class="shop-item-level" id="rodLevelDots"></div>
         </div>
         <button class="shop-buy-btn" id="rodBuyBtn">Kup</button>
@@ -843,6 +856,8 @@ html, body {
   const baitCoinsVal = document.getElementById('baitCoinsVal');
   const baitBackBtn = document.getElementById('baitBackBtn');
   const rodEquippedDesc = document.getElementById('rodEquippedDesc');
+  const rodPrevBtn = document.getElementById('rodPrevBtn');
+  const rodNextBtn = document.getElementById('rodNextBtn');
   const reelEquippedDesc = document.getElementById('reelEquippedDesc');
   const sellTile = document.getElementById('sellTile');
   const sellBadge = document.getElementById('sellBadge');
@@ -905,6 +920,9 @@ html, body {
   let dailyStreak = parseInt(localStorage.getItem(DAILY_STREAK_KEY) || '0', 10);
   let dailyLastClaim = localStorage.getItem(DAILY_LAST_CLAIM_KEY) || null;
   let hasHiperRod = localStorage.getItem(HIPER_ROD_KEY) === '1';
+  const EQUIPPED_ROD_KEY = 'fishIsVeryGood_equippedRodIndex';
+  let equippedRodIndex = localStorage.getItem(EQUIPPED_ROD_KEY);
+  equippedRodIndex = equippedRodIndex === null ? null : parseInt(equippedRodIndex, 10);
   let hasHiperReel = localStorage.getItem(HIPER_REEL_KEY) === '1';
   let hasHiperBait = localStorage.getItem(HIPER_BAIT_KEY) === '1';
   let week7Count = parseInt(localStorage.getItem(WEEK7_COUNT_KEY) || '0', 10);
@@ -1022,9 +1040,13 @@ html, body {
     { name:'Lodowa Wędka', rodOuter:'#1c3a4a', rodInner:'#d8f6ff', guide:'rgba(0,40,55,0.5)', reelBody:'#123040', reelFace:'#eafeff', reelArm:'#1c3a4a', accent:'#9fe8ff', glow:true, sparkle:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
+  function maxOwnedRodIndex() {
+    return hasHiperRod ? ROD_STYLES.length - 1 : clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 2);
+  }
   function currentRodStyle() {
-    if (hasHiperRod) return ROD_STYLES[ROD_STYLES.length - 1];
-    return ROD_STYLES[clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 2)];
+    const maxIdx = maxOwnedRodIndex();
+    const idx = equippedRodIndex !== null ? clamp(equippedRodIndex, 0, maxIdx) : maxIdx;
+    return ROD_STYLES[idx];
   }
 
   const REEL_RING_COLORS = [null, 'rgba(170,205,215,0.55)', '#6fd7ff', '#3fe8ff', '#eafcff'];
@@ -1095,9 +1117,14 @@ html, body {
     const rodStyle = currentRodStyle();
     const rodLvl = upgrades.rod || 0;
     const rodMax = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
-    rodEquippedDesc.textContent = hasHiperRod
+    const rodMaxIdx = maxOwnedRodIndex();
+    const rodShownIdx = equippedRodIndex !== null ? clamp(equippedRodIndex, 0, rodMaxIdx) : rodMaxIdx;
+    const isHiperShown = hasHiperRod && rodShownIdx === ROD_STYLES.length - 1;
+    rodEquippedDesc.textContent = isHiperShown
       ? '🎣 Hiper Wędka — nagroda za ' + CYCLE_LEN + '-dniową serię logowań. Najlepsza możliwa strefa chwytu.'
       : rodStyle.name + ' — poziom ' + rodLvl + '/' + rodMax + '. Większa strefa chwytu przy zwijaniu żyłki.';
+    rodPrevBtn.disabled = rodShownIdx <= 0;
+    rodNextBtn.disabled = rodShownIdx >= rodMaxIdx;
     const reelLvl = upgrades.reel || 0;
     const reelMax = UPGRADE_DEFS.find(d => d.key === 'reel').costs.length;
     reelEquippedDesc.textContent = hasHiperReel
@@ -1134,6 +1161,10 @@ html, body {
     upgrades[key] = lvl + 1;
     localStorage.setItem(COINS_KEY, String(coins));
     localStorage.setItem(UPGRADES_KEY, JSON.stringify(upgrades));
+    if (key === 'rod') {
+      equippedRodIndex = null;
+      localStorage.removeItem(EQUIPPED_ROD_KEY);
+    }
     renderShop();
   }
 
@@ -1152,6 +1183,22 @@ html, body {
   for (const def of UPGRADE_DEFS) {
     document.getElementById(def.btnKey).addEventListener('click', () => buyUpgrade(def.key));
   }
+  rodPrevBtn.addEventListener('click', () => {
+    const maxIdx = maxOwnedRodIndex();
+    const cur = equippedRodIndex !== null ? clamp(equippedRodIndex, 0, maxIdx) : maxIdx;
+    if (cur <= 0) return;
+    equippedRodIndex = cur - 1;
+    localStorage.setItem(EQUIPPED_ROD_KEY, String(equippedRodIndex));
+    renderShop();
+  });
+  rodNextBtn.addEventListener('click', () => {
+    const maxIdx = maxOwnedRodIndex();
+    const cur = equippedRodIndex !== null ? clamp(equippedRodIndex, 0, maxIdx) : maxIdx;
+    if (cur >= maxIdx) return;
+    equippedRodIndex = cur + 1;
+    localStorage.setItem(EQUIPPED_ROD_KEY, String(equippedRodIndex));
+    renderShop();
+  });
 
   function renderBaitScreen() {
     updateCoinsUI();
