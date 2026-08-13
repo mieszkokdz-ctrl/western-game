@@ -1067,7 +1067,7 @@ html, body {
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
     { name:'Piorun Wędka', rodOuter:'#16162a', rodInner:'#eaf2ff', guide:'rgba(20,20,60,0.6)', reelBody:'#0d0d1c', reelFace:'#bfe0ff', reelArm:'#16162a', accent:'#8fd6ff', glow:true, flicker:true, boltShape:true, hueCycle:true },
     { name:'Ognista Wędka', rodOuter:'#3a0505', rodInner:'#ff2020', guide:'rgba(60,0,0,0.55)', reelBody:'#2a0303', reelFace:'#ff8a5a', reelArm:'#3a0505', accent:'#ff3b1f', glow:true, pulse:true, emitBolts:true },
-    { name:'Lodowa Wędka', rodOuter:'#1c3a4a', rodInner:'#d8f6ff', guide:'rgba(0,40,55,0.5)', reelBody:'#123040', reelFace:'#eafeff', reelArm:'#1c3a4a', accent:'#9fe8ff', glow:true, sparkle:true },
+    { name:'Galaktyczna Wędka', rodOuter:'#0a0a1a', rodInner:'#2a1a4a', guide:'rgba(10,5,30,0.6)', reelBody:'#08081a', reelFace:'#8a6fff', reelArm:'#0a0a1a', accent:'#8a6fff', glow:true, sparkle:true, nebula:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
   function maxOwnedRodIndex() {
@@ -2546,6 +2546,14 @@ html, body {
       accentColor = shadeHex(accentColor, -10 + 25 * p);
       reelFaceColor = accentColor;
     }
+    if (style.nebula) {
+      const t = (Math.sin(performance.now() * 0.0006) + 1) / 2;
+      const hue = 230 + t * 60;
+      outerColor = 'hsl(' + hue.toFixed(0) + ',55%,9%)';
+      innerColor = 'hsl(' + hue.toFixed(0) + ',65%,32%)';
+      accentColor = 'hsl(' + ((hue + 25) % 360).toFixed(0) + ',85%,72%)';
+      reelFaceColor = accentColor;
+    }
     ctx.save();
     ctx.lineCap = 'round';
 
@@ -2650,7 +2658,7 @@ html, body {
         ctx.save();
         ctx.globalAlpha = twinkle;
         ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#bff6ff';
+        ctx.shadowColor = accentColor;
         ctx.shadowBlur = 10;
         const r = 4.2 * twinkle;
         ctx.beginPath();
