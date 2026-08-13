@@ -1018,7 +1018,7 @@ html, body {
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
     { name:'Diamentowa', rodOuter:'#4a6068', rodInner:'#dffbff', guide:'rgba(0,40,50,0.5)', reelBody:'#33454c', reelFace:'#eafeff', reelArm:'#4a6068', accent:'#bff6ff', glow:true },
     { name:'Piorun Wędka', rodOuter:'#16162a', rodInner:'#eaf2ff', guide:'rgba(20,20,60,0.6)', reelBody:'#0d0d1c', reelFace:'#bfe0ff', reelArm:'#16162a', accent:'#8fd6ff', glow:true, flicker:true, boltShape:true, hueCycle:true },
-    { name:'Ognista Wędka', rodOuter:'#3a1206', rodInner:'#ff7a2e', guide:'rgba(60,15,0,0.55)', reelBody:'#2a0d04', reelFace:'#ffcf6b', reelArm:'#3a1206', accent:'#ff4d1f', glow:true, pulse:true },
+    { name:'Ognista Wędka', rodOuter:'#3a0505', rodInner:'#ff2020', guide:'rgba(60,0,0,0.55)', reelBody:'#2a0303', reelFace:'#ff8a5a', reelArm:'#3a0505', accent:'#ff3b1f', glow:true, pulse:true, emitBolts:true },
     { name:'Lodowa Wędka', rodOuter:'#1c3a4a', rodInner:'#d8f6ff', guide:'rgba(0,40,55,0.5)', reelBody:'#123040', reelFace:'#eafeff', reelArm:'#1c3a4a', accent:'#9fe8ff', glow:true, sparkle:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
@@ -2378,6 +2378,45 @@ html, body {
     };
   }
 
+  let rodBolt = null;
+  let rodBoltNextAt = performance.now() + rand(1500, 3000);
+  function spawnRodBolt(g, nx, ny) {
+    const t = rand(0.15, 0.85);
+    const side = Math.random() < 0.5 ? 1 : -1;
+    const baseX = lerp(g.base.x, g.tip.x, t) + nx * side * 8;
+    const baseY = lerp(g.base.y, g.tip.y, t) + ny * side * 8;
+    const angle = Math.atan2(ny, nx) * side + rand(-0.5, 0.5);
+    const len = rand(46, 78);
+    const segs = 5;
+    const pts = [{ x: baseX, y: baseY }];
+    for (let i = 1; i <= segs; i++) {
+      const f = i / segs;
+      const jitter = (Math.random() - 0.5) * 14;
+      pts.push({
+        x: baseX + Math.cos(angle) * len * f + Math.cos(angle + Math.PI / 2) * jitter,
+        y: baseY + Math.sin(angle) * len * f + Math.sin(angle + Math.PI / 2) * jitter,
+      });
+    }
+    return { pts, born: performance.now(), duration: 260 };
+  }
+  function drawRodBolt(bolt) {
+    const age = performance.now() - bolt.born;
+    const t = clamp(age / bolt.duration, 0, 1);
+    const alpha = t < 0.3 ? 1 : Math.max(0, 1 - (t - 0.3) / 0.7);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#fff5b8';
+    ctx.shadowColor = '#ffcf6b';
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    bolt.pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawRod() {
     const g = rodGeom();
     const style = currentRodStyle();
@@ -2526,6 +2565,18 @@ html, body {
         ctx.closePath();
         ctx.fill();
         ctx.restore();
+      }
+    }
+
+    if (style.emitBolts) {
+      const now = performance.now();
+      if (!rodBolt && now >= rodBoltNextAt) {
+        rodBolt = spawnRodBolt(g, nx, ny);
+        rodBoltNextAt = now + rand(1800, 3400);
+      }
+      if (rodBolt) {
+        if (now - rodBolt.born > rodBolt.duration) rodBolt = null;
+        else drawRodBolt(rodBolt);
       }
     }
 
