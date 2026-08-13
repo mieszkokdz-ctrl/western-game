@@ -1828,6 +1828,67 @@ html, body {
     ctx.restore();
   }
 
+  const BIG_FISH_STEAL_INTERVAL = 15 * 60 * 1000;
+  let nextBigFishStealAt = performance.now() + BIG_FISH_STEAL_INTERVAL;
+  let bigFishStealing = false;
+  let bigFishSwipe = null;
+
+  function startBigFishSwipe(onDone) {
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    const y = H * rand(0.4, 0.56);
+    bigFishSwipe = { y, dir, t: 0, duration: 0.9, onDone };
+  }
+  function updateBigFishSwipe(dt) {
+    if (!bigFishSwipe) return;
+    bigFishSwipe.t += dt / bigFishSwipe.duration;
+    if (bigFishSwipe.t >= 1) {
+      const cb = bigFishSwipe.onDone;
+      bigFishSwipe = null;
+      if (cb) cb();
+    }
+  }
+  function drawBigFishSwipe() {
+    if (!bigFishSwipe) return;
+    const f = bigFishSwipe;
+    const t = clamp(f.t, 0, 1);
+    const startX = f.dir === 1 ? -80 : W + 80;
+    const endX = f.dir === 1 ? W + 80 : -80;
+    const x = lerp(startX, endX, t);
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    drawFishIcon(ctx, { color: '#1c2733', fin: '#0c141c', bodyDepth: 1.2 }, x, f.y, 46, f.dir);
+    ctx.restore();
+  }
+  function showStolenToast(fish) {
+    clearTimeout(toastTimer);
+    toast.classList.add('escaped');
+    toastEyebrow.textContent = 'Straciłeś rybę!';
+    toastName.textContent = fish ? fish.name : '???';
+    toastWeight.textContent = 'Większa ryba ją porwała — czasem się zdarza.';
+    toastRecord.style.display = 'none';
+    toastChoice.style.display = 'none';
+    if (fish) renderToastFishCanvas(fish);
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      setState('idle');
+    }, 2200);
+  }
+  function maybeTriggerBigFishSteal() {
+    const now = performance.now();
+    if (now < nextBigFishStealAt) return;
+    nextBigFishStealAt = now + BIG_FISH_STEAL_INTERVAL;
+    if (state !== 'reeling' || bigFishStealing) return;
+    bigFishStealing = true;
+    startBigFishSwipe(() => {
+      const fish = currentFish;
+      currentFish = null;
+      bigFishStealing = false;
+      showStolenToast(fish);
+      setState('result');
+    });
+  }
+
   let fireworkParticles = [];
   let fireworksActiveUntil = 0;
   let fireworksNextBurstAt = 0;
@@ -2189,7 +2250,7 @@ html, body {
     if (state === 'casting') updateCasting(dt);
     else if (state === 'waiting') updateWaiting(dt);
     else if (state === 'bite') updateBite(dt);
-    else if (state === 'reeling') updateReeling(dt);
+    else if (state === 'reeling') { if (!bigFishStealing) updateReeling(dt); }
     else bobberSwing += dt;
 
     for (const r of ripples) { r.r += r.grow * dt; r.alpha -= dt * 0.7; }
@@ -2197,6 +2258,8 @@ html, body {
 
     updateFireworks(dt);
     updateFishJump(dt);
+    updateBigFishSwipe(dt);
+    maybeTriggerBigFishSteal();
   }
 
   // ---------- drawing ----------
@@ -2852,6 +2915,7 @@ html, body {
     drawRod();
     drawLineAndBobber();
     if (state === 'reeling') drawReelPanel();
+    drawBigFishSwipe();
     drawFireworks();
   }
 
