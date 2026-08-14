@@ -1071,6 +1071,7 @@ html, body {
     { name:'Ognista Wędka', rodOuter:'#3a0505', rodInner:'#ff2020', guide:'rgba(60,0,0,0.55)', reelBody:'#2a0303', reelFace:'#ff8a5a', reelArm:'#3a0505', accent:'#ff3b1f', glow:true, pulse:true, emitBolts:true },
     { name:'Plazmowa Wędka', rodOuter:'#031820', rodInner:'#1a5a6a', guide:'rgba(0,30,40,0.6)', reelBody:'#021218', reelFace:'#6ff0ff', reelArm:'#031820', accent:'#6ff0ff', glow:true, sparkle:true, nebula:true, nebulaHue:172, nebulaRange:38, nebulaAccentSpread:15 },
     { name:'Toksyczna Wędka', rodOuter:'#0a1a08', rodInner:'#39ff6b', guide:'rgba(10,40,5,0.55)', reelBody:'#0a1a08', reelFace:'#baff5e', reelArm:'#0a1a08', accent:'#baff5e', glow:true, pulse:true },
+    { name:'Różowa Wędka', rodOuter:'#d67aa8', rodInner:'#ffd6ec', guide:'rgba(120,30,80,0.45)', reelBody:'#8a3d64', reelFace:'#ffc2e2', reelArm:'#d67aa8', accent:'#ffb3d9', glow:true, sparkle:true, pinkBobber:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
   function maxOwnedRodIndex() {
@@ -1130,7 +1131,7 @@ html, body {
   }
 
   const UPGRADE_DEFS = [
-    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350, 700, 1100, 1800, 2800, 4200] },
+    { key:'rod',  name:'Wędka',      descKey:'rodLevelDots',  btnKey:'rodBuyBtn',  costs:[60, 150, 350, 700, 1100, 1800, 2800, 4200, 5500] },
     { key:'reel', name:'Kołowrotek', descKey:'reelLevelDots', btnKey:'reelBuyBtn', costs:[45, 130, 300, 600] },
   ];
 
@@ -2809,7 +2810,7 @@ html, body {
 
     ctx.save();
     ctx.translate(bx, by);
-    ctx.fillStyle = '#e14b3a';
+    ctx.fillStyle = currentRodStyle().pinkBobber ? '#ff6fb0' : '#e14b3a';
     ctx.beginPath(); ctx.arc(0, -4, 7, Math.PI, 0); ctx.fill();
     ctx.fillStyle = '#eef8f7';
     ctx.beginPath(); ctx.arc(0, -4, 7, 0, Math.PI); ctx.fill();
