@@ -1066,7 +1066,7 @@ html, body {
     { name:'Grafitowa', rodOuter:'#2c2c34', rodInner:'#565662', guide:'rgba(0,0,0,0.5)',    reelBody:'#1b1b20', reelFace:'#9aa4b0', reelArm:'#2c2c34', accent:'#6fd7ff' },
     { name:'Węglowa',   rodOuter:'#121216', rodInner:'#2a2a30', guide:'rgba(0,0,0,0.6)',    reelBody:'#0d0d10', reelFace:'#3fd8c0', reelArm:'#121216', accent:'#3fd8c0', blackRing:true },
     { name:'Złota',     rodOuter:'#7a5a1a', rodInner:'#e0b458', guide:'rgba(60,40,0,0.5)',  reelBody:'#4a3510', reelFace:'#ffe08a', reelArm:'#7a5a1a', accent:'#ffcf6b', glow:true },
-    { name:'Szmaragdowa Wędka', rodOuter:'#0a3d24', rodInner:'#0fd47a', guide:'rgba(0,40,20,0.5)', reelBody:'#062b19', reelFace:'#7fffc0', reelArm:'#0a3d24', accent:'#ffd25a', glow:true, sparkle:true },
+    { name:'Parowa Wędka', rodOuter:'#4a2f18', rodInner:'#c9822f', guide:'rgba(40,20,5,0.5)', reelBody:'#3a2412', reelFace:'#e8a24a', reelArm:'#4a2f18', accent:'#ffb35c', glow:true, steam:true },
     { name:'Piorun Wędka', rodOuter:'#16162a', rodInner:'#eaf2ff', guide:'rgba(20,20,60,0.6)', reelBody:'#0d0d1c', reelFace:'#bfe0ff', reelArm:'#16162a', accent:'#8fd6ff', glow:true, flicker:true, boltShape:true, hueCycle:true },
     { name:'Ognista Wędka', rodOuter:'#3a0505', rodInner:'#ff2020', guide:'rgba(60,0,0,0.55)', reelBody:'#2a0303', reelFace:'#ff8a5a', reelArm:'#3a0505', accent:'#ff3b1f', glow:true, pulse:true, emitBolts:true },
     { name:'Plazmowa Wędka', rodOuter:'#031820', rodInner:'#1a5a6a', guide:'rgba(0,30,40,0.6)', reelBody:'#021218', reelFace:'#6ff0ff', reelArm:'#031820', accent:'#6ff0ff', glow:true, sparkle:true, nebula:true, nebulaHue:172, nebulaRange:38, nebulaAccentSpread:15 },
@@ -2739,6 +2739,24 @@ html, body {
         ctx.lineTo(sx - r, sy); ctx.lineTo(sx - r * 0.32, sy - r * 0.32);
         ctx.closePath();
         ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    if (style.steam) {
+      const now = performance.now();
+      for (let k = 0; k < 4; k++) {
+        const cycle = 1600;
+        const phase = (now + k * (cycle / 4)) % cycle;
+        const t = phase / cycle;
+        const drift = Math.sin(t * Math.PI * 2 + k) * 6;
+        const px = g.reel.x + drift - 4 + k * 2;
+        const py = g.reel.y - 16 - t * 34;
+        const r = 3 + t * 8;
+        ctx.save();
+        ctx.globalAlpha = (1 - t) * 0.45;
+        ctx.fillStyle = '#f4ede2';
+        ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       }
     }
