@@ -1072,7 +1072,7 @@ html, body {
     { name:'Plazmowa Wędka', rodOuter:'#031820', rodInner:'#1a5a6a', guide:'rgba(0,30,40,0.6)', reelBody:'#021218', reelFace:'#6ff0ff', reelArm:'#031820', accent:'#6ff0ff', glow:true, sparkle:true, nebula:true, nebulaHue:172, nebulaRange:38, nebulaAccentSpread:15 },
     { name:'Toksyczna Wędka', rodOuter:'#0a1a08', rodInner:'#39ff6b', guide:'rgba(10,40,5,0.55)', reelBody:'#0a1a08', reelFace:'#baff5e', reelArm:'#0a1a08', accent:'#baff5e', glow:true, pulse:true },
     { name:'Różowa Wędka', rodOuter:'#d67aa8', rodInner:'#ffd6ec', guide:'rgba(120,30,80,0.45)', reelBody:'#8a3d64', reelFace:'#ffc2e2', reelArm:'#d67aa8', accent:'#ffb3d9', glow:true, sparkle:true, pinkBobber:true },
-    { name:'Szmaragdowa Wędka', rodOuter:'#0a3d24', rodInner:'#0fd47a', guide:'rgba(0,40,20,0.5)', reelBody:'#062b19', reelFace:'#7fffc0', reelArm:'#0a3d24', accent:'#ffd25a', glow:true, sparkle:true },
+    { name:'Czarno-Złota Wędka', rodOuter:'#0c0c0c', rodInner:'#d4af37', guide:'rgba(0,0,0,0.6)', reelBody:'#0a0a0a', reelFace:'#f2c14e', reelArm:'#0c0c0c', accent:'#f2c14e', glow:true, sparkle:true, goldBobber:true },
     { name:'Hiper Wędka', rodOuter:'#6a1a9a', rodInner:'#c13fef', guide:'rgba(40,0,60,0.6)', reelBody:'#3a0f56', reelFace:'#f2c9ff', reelArm:'#6a1a9a', accent:'#f2c9ff', glow:true, rainbow:true },
   ];
   function maxOwnedRodIndex() {
@@ -2809,9 +2809,10 @@ html, body {
 
     if (state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
 
+    const rodStyle = currentRodStyle();
     ctx.save();
     ctx.translate(bx, by);
-    ctx.fillStyle = currentRodStyle().pinkBobber ? '#ff6fb0' : '#e14b3a';
+    ctx.fillStyle = rodStyle.pinkBobber ? '#ff6fb0' : rodStyle.goldBobber ? '#f2c14e' : '#e14b3a';
     ctx.beginPath(); ctx.arc(0, -4, 7, Math.PI, 0); ctx.fill();
     ctx.fillStyle = '#eef8f7';
     ctx.beginPath(); ctx.arc(0, -4, 7, 0, Math.PI); ctx.fill();
