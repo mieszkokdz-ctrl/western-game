@@ -1120,11 +1120,14 @@ html, body {
   function maxOwnedRodIndex() {
     return hasHiperRod ? ROD_STYLES.length - 1 : clamp(upgrades.rod || 0, 0, ROD_STYLES.length - 2);
   }
-  function currentRodStyle() {
+  function equippedRodIdx() {
     const maxIdx = maxOwnedRodIndex();
-    const idx = equippedRodIndex !== null ? clamp(equippedRodIndex, 0, maxIdx) : maxIdx;
-    return ROD_STYLES[idx];
+    return equippedRodIndex !== null ? clamp(equippedRodIndex, 0, maxIdx) : maxIdx;
   }
+  function currentRodStyle() {
+    return ROD_STYLES[equippedRodIdx()];
+  }
+  const ROD_LOCKED_FISH = ['Pirania', 'Arapaima', 'Rekin Byczy'];
 
   const REEL_RING_COLORS = [null, 'rgba(170,205,215,0.55)', '#6fd7ff', '#3fe8ff', '#eafcff'];
 
@@ -1155,7 +1158,8 @@ html, body {
   }
   function pickFishType() {
     const bait = currentBait();
-    const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation));
+    const weakRod = equippedRodIdx() <= 1;
+    const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation) && !(weakRod && ROD_LOCKED_FISH.includes(f.name)));
     let total = 0;
     const weights = pool.map(f => {
       const favor = bait.favors && bait.favors[f.name] ? bait.favors[f.name] : 1;
