@@ -1170,15 +1170,9 @@ html, body {
   }
   function pickFishType() {
     const bait = currentBait();
-    const fullPool = FISH_TYPES.filter(f => f.locations.includes(currentLocation));
     const weakRod = equippedRodIdx() <= 1;
-    const picked = weightedFishPick(fullPool, bait);
-    if (weakRod && ROD_LOCKED_FISH.includes(picked.name)) {
-      showWeakRodToast(picked);
-      const allowedPool = fullPool.filter(f => !ROD_LOCKED_FISH.includes(f.name));
-      return weightedFishPick(allowedPool, bait);
-    }
-    return picked;
+    const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation) && !(weakRod && ROD_LOCKED_FISH.includes(f.name)));
+    return weightedFishPick(pool, bait);
   }
   function fishZone(fish) {
     const maxRodLvl = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
@@ -2108,6 +2102,15 @@ html, body {
   }
 
   function triggerBite() {
+    if (equippedRodIdx() <= 1) {
+      const fullPool = FISH_TYPES.filter(f => f.locations.includes(currentLocation));
+      const wouldBite = weightedFishPick(fullPool, currentBait());
+      if (ROD_LOCKED_FISH.includes(wouldBite.name)) {
+        showWeakRodToast(wouldBite);
+        beginWaiting();
+        return;
+      }
+    }
     currentFish = pickFishType();
     addRipple(bobber.x, bobber.y, true);
     setState('bite');
