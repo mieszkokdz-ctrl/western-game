@@ -1156,10 +1156,7 @@ html, body {
   function baseWeightFor(f, loc) {
     return (f.weightByLocation && f.weightByLocation[loc] != null) ? f.weightByLocation[loc] : f.weight;
   }
-  function pickFishType() {
-    const bait = currentBait();
-    const weakRod = equippedRodIdx() <= 1;
-    const pool = FISH_TYPES.filter(f => f.locations.includes(currentLocation) && !(weakRod && ROD_LOCKED_FISH.includes(f.name)));
+  function weightedFishPick(pool, bait) {
     let total = 0;
     const weights = pool.map(f => {
       const favor = bait.favors && bait.favors[f.name] ? bait.favors[f.name] : 1;
@@ -1170,6 +1167,18 @@ html, body {
     let r = Math.random() * total;
     for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
     return pool[0];
+  }
+  function pickFishType() {
+    const bait = currentBait();
+    const fullPool = FISH_TYPES.filter(f => f.locations.includes(currentLocation));
+    const weakRod = equippedRodIdx() <= 1;
+    const picked = weightedFishPick(fullPool, bait);
+    if (weakRod && ROD_LOCKED_FISH.includes(picked.name)) {
+      showWeakRodToast(picked);
+      const allowedPool = fullPool.filter(f => !ROD_LOCKED_FISH.includes(f.name));
+      return weightedFishPick(allowedPool, bait);
+    }
+    return picked;
   }
   function fishZone(fish) {
     const maxRodLvl = UPGRADE_DEFS.find(d => d.key === 'rod').costs.length;
@@ -2151,6 +2160,21 @@ html, body {
     toast.classList.add('show');
     pendingCatch = { fish, kg, coinsEarned };
     if (fish.name === 'Arapaima' || fish.name === 'Rekin Byczy') triggerFireworks();
+  }
+
+  function showWeakRodToast(fish) {
+    clearTimeout(toastTimer);
+    toast.classList.add('escaped');
+    toastEyebrow.textContent = 'Zbyt słaba wędka!';
+    toastName.textContent = fish.name;
+    toastWeight.textContent = 'Kup lepszą wędkę, żeby złowić tę rybę.';
+    toastRecord.style.display = 'none';
+    toastChoice.style.display = 'none';
+    renderToastFishCanvas(fish);
+    toast.classList.add('show');
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 2200);
   }
 
   function showEscapeToast(fish) {
