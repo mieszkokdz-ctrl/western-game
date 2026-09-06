@@ -2899,6 +2899,7 @@ html, body {
     ctx.restore();
 
     if (state === 'reeling' || state === 'result') { ctx.restore && 0; return; }
+    if (currentBait().id === 'gumowa') return;
 
     const rodStyle = currentRodStyle();
     ctx.save();
