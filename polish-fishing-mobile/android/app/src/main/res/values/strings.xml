@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Polish Fishing</string>
+    <string name="title_activity_main">Polish Fishing</string>
+    <string name="package_name">com.mieszko.polishfishing</string>
+    <string name="custom_url_scheme">com.mieszko.polishfishing</string>
+</resources>
